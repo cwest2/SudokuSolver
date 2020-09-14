@@ -212,4 +212,65 @@ public class SandwichTest extends SudokuTest{
 
         compareSolutions(puzzle.solve(), solution);
     }
+
+    @Test
+    public void testVariableSums() {
+        int[][] givens = {
+                {0, 0, 0, 0, 0, 0, 0, 0, 0},
+                {0, 0, 0, 0, 1, 0, 0, 0, 0},
+                {0, 0, 0, 0, 0, 2, 0, 0, 0},
+                {0, 0, 0, 0, 0, 0, 1, 0, 0},
+                {0, 3, 0, 0, 0, 0, 0, 5, 0},
+                {0, 0, 1, 0, 0, 0, 0, 0, 0},
+                {0, 0, 0, 2, 0, 0, 0, 0, 0},
+                {0, 0, 0, 0, 7, 0, 0, 0, 0},
+                {0, 0, 0, 0, 0, 0, 0, 0, 0}
+        };
+
+        int[][] rowSumSets = {
+                {},
+                {},
+                {20, 22},
+                {3, 5},
+                {19, 21},
+                {17, 19},
+                {},
+                {9, 11},
+                {10, 12}
+        };
+
+        int[][] colSumSets = {
+                {16, 18},
+                {},
+                {19, 21},
+                {17, 19},
+                {},
+                {19, 21},
+                {17, 19},
+                {},
+                {}
+        };
+
+        AbstractPuzzle puzzle = new RegularSudoku.RegularSudokuBuilder()
+                .withGivens(givens)
+                .build();
+        puzzle = new SandwichSudoku.SandwichSudokuBuilder(puzzle)
+                .withRowSumSets(rowSumSets)
+                .withColSumSets(colSumSets)
+                .build();
+
+        int[][] solution = {
+                {1, 2, 9, 8, 3, 6, 5, 4, 7},
+                {4, 6, 8, 7, 1, 5, 3, 2, 9},
+                {5, 7, 3, 9, 4, 2, 8, 6, 1},
+                {7, 4, 6, 5, 9, 3, 1, 8, 2},
+                {9, 3, 2, 6, 8, 1, 7, 5, 4},
+                {8, 5, 1, 4, 2, 7, 6, 9, 3},
+                {3, 9, 7, 2, 6, 8, 4, 1, 5},
+                {2, 8, 5, 1, 7, 4, 9, 3, 6},
+                {6, 1, 4, 3, 5, 9, 2, 7, 8}
+        };
+
+        compareSolutions(puzzle.solve(), solution);
+    }
 }
