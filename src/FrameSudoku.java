@@ -1,5 +1,7 @@
-import org.chocosolver.solver.constraints.nary.nvalue.amnv.mis.F;
-import org.chocosolver.solver.variables.IntVar;
+import com.google.ortools.sat.Constraint;
+import com.google.ortools.sat.IntVar;
+import com.google.ortools.sat.LinearExpr;
+import com.google.ortools.sat.Literal;
 
 public class FrameSudoku extends VariantPuzzle {
     int[] leftRowSums;
@@ -7,6 +9,10 @@ public class FrameSudoku extends VariantPuzzle {
     int[] rightRowSums;
     int[] bottomColSums;
     int numCells;
+    Literal[] leftRowConds;
+    Literal[] topColConds;
+    Literal[] rightRowConds;
+    Literal[] bottomColConds;
 
     public static class FrameSudokuBuilder {
         AbstractPuzzle base;
@@ -15,6 +21,10 @@ public class FrameSudoku extends VariantPuzzle {
         int[] rightRowSums = null;
         int[] bottomColSums = null;
         int numCells = 3;
+        Literal[] leftRowConds = null;
+        Literal[] topColConds = null;
+        Literal[] rightRowConds = null;
+        Literal[] bottomColConds = null;
 
         public int[] emptySums(int n) {
             int[] sums = new int[n];
@@ -48,6 +58,26 @@ public class FrameSudoku extends VariantPuzzle {
             return this;
         }
 
+        public FrameSudokuBuilder withLeftRowConds(Literal[] leftRowConds) {
+            this.leftRowConds = leftRowConds;
+            return this;
+        }
+
+        public FrameSudokuBuilder withTopColConds(Literal[] topColConds) {
+            this.topColConds = topColConds;
+            return this;
+        }
+
+        public FrameSudokuBuilder withRightRowConds(Literal[] rightRowConds) {
+            this.rightRowConds = rightRowConds;
+            return this;
+        }
+
+        public FrameSudokuBuilder withBottomColConds(Literal[] bottomColConds) {
+            this.bottomColConds = bottomColConds;
+            return this;
+        }
+
         public FrameSudoku build() {
             int n = base.getN();
             if (leftRowSums == null) {
@@ -62,27 +92,48 @@ public class FrameSudoku extends VariantPuzzle {
             if (bottomColSums == null) {
                 bottomColSums = emptySums(n);
             }
-            return new FrameSudoku(base, leftRowSums, topColSums, rightRowSums, bottomColSums, numCells);
+            if (leftRowConds == null) {
+                leftRowConds = new IntVar[n];
+            }
+            if (topColConds == null) {
+                topColConds = new IntVar[n];
+            }
+            if (rightRowConds == null) {
+                rightRowConds = new IntVar[n];
+            }
+            if (bottomColConds == null) {
+                bottomColConds = new IntVar[n];
+            }
+            return new FrameSudoku(base, leftRowSums, topColSums, rightRowSums, bottomColSums, numCells,
+                    leftRowConds, topColConds, rightRowConds, bottomColConds);
         }
     }
 
-    private FrameSudoku(AbstractPuzzle base, int[] leftRowSums, int[] topColSums, int[] rightRowSums, int[] bottomColSums, int numCells) {
-        this.base = base;
+    private FrameSudoku(AbstractPuzzle base, int[] leftRowSums, int[] topColSums, int[] rightRowSums, int[] bottomColSums, int numCells,
+                        Literal[] leftRowConds, Literal[] topColConds, Literal[] rightRowConds, Literal[] bottomColConds) {
+        super(base);
         this.leftRowSums = leftRowSums;
         this.topColSums = topColSums;
         this.rightRowSums = rightRowSums;
         this.bottomColSums = bottomColSums;
         this.numCells = numCells;
+        this.leftRowConds = leftRowConds;
+        this.topColConds = topColConds;
+        this.rightRowConds = rightRowConds;
+        this.bottomColConds = bottomColConds;
     }
 
-    private void buildFrameConstraints(IntVar[][] rows, int[] sums, int numCells) {
+    private void buildFrameConstraints(IntVar[][] rows, int[] sums, int numCells, Literal[] conds) {
         for (int i = 0; i < sums.length; i++) {
-            IntVar[] row = rows[i];
-            IntVar sum = row[0];
-            for (int j = 1; j < numCells; j++) {
-                sum = sum.add(row[j]).intVar();
+            if (sums[i] > 0) {
+                IntVar[] row = rows[i];
+                IntVar[] frame = new IntVar[numCells];
+                if (numCells >= 0) System.arraycopy(row, 0, frame, 0, numCells);
+                Constraint constraint = model.addEquality(LinearExpr.sum(frame), sums[i]);
+                if (conds[i] != null) {
+                    constraint.onlyEnforceIf(conds[i]);
+                }
             }
-            sum.eq(sums[i]).post();
         }
     }
 
@@ -92,14 +143,9 @@ public class FrameSudoku extends VariantPuzzle {
         IntVar[][] rows = getRows();
         IntVar[][] cols = getCols();
 
-        buildFrameConstraints(rows, leftRowSums, numCells);
-        buildFrameConstraints(cols, topColSums, numCells);
-        buildFrameConstraints(makeRowReversedGrid(rows), rightRowSums, numCells);
-        buildFrameConstraints(makeRowReversedGrid(cols), bottomColSums, numCells);
-    }
-
-    @Override
-    protected void buildDokeFile(StringBuilder sb) {
-
+        buildFrameConstraints(rows, leftRowSums, numCells, leftRowConds);
+        buildFrameConstraints(cols, topColSums, numCells, topColConds);
+        buildFrameConstraints(makeRowReversedGrid(rows), rightRowSums, numCells, rightRowConds);
+        buildFrameConstraints(makeRowReversedGrid(cols), bottomColSums, numCells, bottomColConds);
     }
 }

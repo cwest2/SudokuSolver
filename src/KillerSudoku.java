@@ -1,33 +1,84 @@
-import org.chocosolver.solver.variables.IntVar;
+import com.google.ortools.sat.Constraint;
+import com.google.ortools.sat.CpModel;
+import com.google.ortools.sat.IntVar;
+import com.google.ortools.sat.LinearExpr;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 public class KillerSudoku extends VariantPuzzle {
 
     int[][] cages;
-    HashMap<Integer, Integer> cageSums;
+    HashMap<Integer, IntVar> cageSums;
 
     public static class KillerSudokuBuilder {
         AbstractPuzzle base;
         int[][] cages;
-        HashMap<Integer, Integer> cageSums;
+        HashMap<Integer, IntVar> varCageSums;
 
-        public KillerSudokuBuilder(AbstractPuzzle base, int[][] cages, HashMap<Integer, Integer> cageSums) {
+        public KillerSudokuBuilder(AbstractPuzzle base) {
             this.base = base;
+        }
+
+        public KillerSudokuBuilder withCagesGrid(int[][] cages) {
             this.cages = cages;
-            this.cageSums = cageSums;
+            return this;
+        }
+
+        public KillerSudokuBuilder withCageSumInts(HashMap<Integer, Integer> cageSums) {
+            varCageSums = new HashMap<>();
+            for (int cage : cageSums.keySet()) {
+                varCageSums.put(cage, base.makeConstVar(cageSums.get(cage), "killerSum" + cage));
+            }
+            return this;
+        }
+
+        public KillerSudokuBuilder withCageSumVars(HashMap<Integer, IntVar> cageSums) {
+            this.varCageSums = cageSums;
+            return this;
         }
 
         public KillerSudoku build() {
-            return new KillerSudoku(base, cages, cageSums);
+            return new KillerSudoku(base, cages, varCageSums);
         }
     }
 
-    private KillerSudoku(AbstractPuzzle base, int[][] cages, HashMap<Integer, Integer> cageSums) {
-        this.base = base;
+    private KillerSudoku(AbstractPuzzle base, int[][] cages, HashMap<Integer, IntVar> cageSums) {
+        super(base);
         this.cages = cages;
         this.cageSums = cageSums;
+    }
+
+    List<Constraint> getKillerCageConstraints(CpModel model, List<IntVar> cage, IntVar sum, int n) {
+        List<Constraint> constraints = new ArrayList<>();
+
+        IntVar[] vars = new IntVar[cage.size()];
+        cage.toArray(vars);
+        constraints.add(model.addAllDifferent(vars));
+        if (sum != null) {
+            constraints.add(model.addEquality(LinearExpr.sum(vars), sum));
+
+//            int maxSumMinusOneCell = 0;
+//            for (int i = 0; i < vars.length - 1; i++) {
+//                maxSumMinusOneCell += n - i;
+//            }
+//            IntVar minCell = sum.sub(maxSumMinusOneCell).intVar();
+//            for (IntVar var : vars) {
+//                var.ge(minCell).post();
+//            }
+//
+//            int minSumMinusOneCell = 0;
+//            for (int i = 0; i < vars.length - 1; i++) {
+//                minSumMinusOneCell += 1 + i;
+//            }
+//            IntVar maxCell = sum.sub(minSumMinusOneCell).intVar();
+//            for (IntVar var : vars) {
+//                var.le(maxCell).post();
+//            }
+        }
+
+        return constraints;
     }
 
     @Override
@@ -50,54 +101,7 @@ public class KillerSudoku extends VariantPuzzle {
         }
 
         for (Integer cage : cageVars.keySet()) {
-//            for (IntVar var : cageVars.get(cage)) {
-//                System.out.println("var " + var.toString());
-//            }
-
-            IntVar[] vars = new IntVar[cageVars.get(cage).size()];
-            cageVars.get(cage).toArray(vars);
-            model.allDifferent(vars).post();
-            if (cageSums.containsKey(cage)) {
-                int sum = cageSums.get(cage);
-                model.sum(vars, "=", sum).post();
-
-                int maxSumMinusOneCell = 0;
-                for (int i = 0; i < vars.length - 1; i++) {
-                    maxSumMinusOneCell += n - i;
-                }
-                int minCell = sum - maxSumMinusOneCell;
-                if (minCell > 1) {
-                    for (IntVar var : vars) {
-                        var.ge(minCell).post();
-                    }
-                }
-
-                int minSumMinusOneCell = 0;
-                for (int i = 0; i < vars.length - 1; i++) {
-                    minSumMinusOneCell += 1 + i;
-                }
-                int maxCell = sum - minSumMinusOneCell;
-                if (maxCell < n) {
-                    for (IntVar var : vars) {
-                        var.le(maxCell).post();
-                    }
-                }
-            }
+            List<Constraint> constraints = getKillerCageConstraints(model, cageVars.get(cage), cageSums.get(cage), n);
         }
-    }
-
-    @Override
-    protected void buildDokeFile(StringBuilder sb) {
-        base.buildDokeFile(sb);
-        sb.append("KILLER\n");
-        buildGrid(sb, cages);
-        for (int cage : cageSums.keySet()) {
-            sb.append(cage);
-            sb.append(" ");
-            sb.append(cageSums.get(cage));
-            sb.append("\n");
-        }
-        sb.append("\n");
-        sb.append("END KILLER\n");
     }
 }

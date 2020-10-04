@@ -4,7 +4,7 @@ public class SukakuTest extends SudokuTest {
 
     @Test
     public void testFullGridSukaku() {
-        int[][][] options = {
+        long[][][] options = {
                 {
                         {2, 3, 5, 6, 7, 8, 9},
                         {1, 2, 4, 5, 6, 7, 8},
@@ -110,7 +110,7 @@ public class SukakuTest extends SudokuTest {
                 .withOptionsGrid(options)
                 .build();
 
-        int[][] solution = {
+        long[][] solution = {
                 {5, 7, 2, 1, 9, 3, 4, 8, 6},
                 {9, 8, 4, 7, 2, 6, 3, 5, 1},
                 {1, 6, 3, 5, 4, 8, 2, 9, 7},
@@ -127,7 +127,7 @@ public class SukakuTest extends SudokuTest {
 
     @Test
     public void testPartialSukakuWithVariableSumSandwich() {
-        int[][][] options = {
+        long[][][] options = {
                 {{}, {}, {}, {}, {}, {}, {}, {}, {}},
                 {{}, {}, {}, {}, {1, 3}, {}, {}, {}, {}},
                 {{}, {}, {}, {}, {}, {0, 2}, {}, {}, {}},
@@ -139,7 +139,7 @@ public class SukakuTest extends SudokuTest {
                 {{}, {}, {}, {}, {}, {}, {}, {}, {}}
         };
 
-        int[][] rowSumSets = {
+        long[][] rowSumSets = {
                 {},
                 {},
                 {20, 22},
@@ -151,7 +151,7 @@ public class SukakuTest extends SudokuTest {
                 {10, 12}
         };
 
-        int[][] colSumSets = {
+        long[][] colSumSets = {
                 {16, 18},
                 {},
                 {19, 21},
@@ -173,7 +173,7 @@ public class SukakuTest extends SudokuTest {
                 .withOptionsGrid(options)
                 .build();
 
-        int[][] solution = {
+        long[][] solution = {
                 {1, 2, 9, 8, 3, 6, 5, 4, 7},
                 {4, 6, 8, 7, 1, 5, 3, 2, 9},
                 {5, 7, 3, 9, 4, 2, 8, 6, 1},

@@ -1,17 +1,18 @@
-import org.chocosolver.solver.variables.IntVar;
+import com.google.ortools.sat.IntVar;
+import com.google.ortools.util.Domain;
 
 public class SukakuSudoku extends VariantPuzzle{
-    int[][][] options;
+    long[][][] options;
 
     public static class SukakuSudokuBuilder {
         AbstractPuzzle base;
-        int[][][] options = null;
+        long[][][] options = null;
 
         public SukakuSudokuBuilder(AbstractPuzzle base) {
             this.base = base;
         }
 
-        public SukakuSudokuBuilder withOptionsGrid(int[][][] options) {
+        public SukakuSudokuBuilder withOptionsGrid(long[][][] options) {
             this.options = options;
             return this;
         }
@@ -24,8 +25,8 @@ public class SukakuSudoku extends VariantPuzzle{
         }
     }
 
-    private SukakuSudoku(AbstractPuzzle base, int[][][] options) {
-        this.base = base;
+    private SukakuSudoku(AbstractPuzzle base, long[][][] options) {
+        super(base);
         this.options = options;
     }
 
@@ -38,15 +39,9 @@ public class SukakuSudoku extends VariantPuzzle{
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
                 if (options[i][j].length > 0) {
-                    rows[i][j].eq(model.intVar(options[i][j])).post();
+                    model.addEquality(rows[i][j], model.newIntVarFromDomain(Domain.fromValues(options[i][j]), "options[" + i + "," + j + "]"));
                 }
             }
         }
     }
-
-    @Override
-    protected void buildDokeFile(StringBuilder sb) {
-
-    }
-
 }

@@ -1,28 +1,7 @@
-MAJOR TODOS:
- - Increase parameterization overall
- - Introduce variables, to allow for more flexible creation besides coded variants
- - Add more of the major variants
-
-IMMEDIATE TODOS:
- - Test 6x6 for all variants
- - Write functions for all variants
-
-OPEN QUESTIONS:
- - Should variants have an "END VARIANT" portion in their .txt form
-   ("END THERMO" for THERMO) in order to allow for optional arguments
-   (like SLOW for THERMO)
-   - Could maybe figure out how to do it without this, but this would make
-     things easier
-   - Would require rewriting existing files
-     - Shouldn't be too hard though
-
-VARIABILITY:
- - Need an existing model to create IntVars.  Currently, the only place models are created is in the LatinSquare.
- - How to get around this?
-   - Could make the model outside of the Latin Square, use it to create IntVars outside of the puzzle structure
-     - Pros: Means we can pass direct IntVars instead of some alternate structure, keep things simple
-     - Cons: Means we need to make a model outside and pass in, requires serious restructuring
-   - Could create an alternate structure to represent variables:
-     - Pros: Means we can represent complex structures (like "each cage equals either M or N")
-     - Cons: Complex, makes passing ints more difficult
-       - This could be circumvented in the Builder
+Need to restructure things for more generality: Rather than a "Class -> Variant" approach, we can do something
+  like a "Class -> Regions/Regions -> Variant" approach.  Each class produces a different kind of region (i.e. a row,
+  a portion of a row, a cage, an arrow/thermo, etc), and regions have variants that they apply to their contents
+  - This approach allows for things like sandwich cages without having to reinvent the wheel, makes functionality
+    much more transferrable
+  - First up, figure out what types of region need to be made (thinking sequence and cage, first off), then figure
+    out which variants correspond to which regions.  Finally, start reconfiguring code into new structure

@@ -1,4 +1,4 @@
-import org.chocosolver.solver.variables.IntVar;
+import com.google.ortools.sat.IntVar;
 
 import java.util.List;
 
@@ -20,7 +20,7 @@ public class RenbanSudoku extends VariantPuzzle{
     }
 
     private RenbanSudoku(AbstractPuzzle base, List<int[][]> regions) {
-        this.base = base;
+        super(base);
         this.regions = regions;
     }
 
@@ -36,17 +36,12 @@ public class RenbanSudoku extends VariantPuzzle{
                 int[] coord = region[i];
                 renban[i] = rows[coord[0]][coord[1]];
             }
-            model.allDifferent(renban).post();
-            IntVar max = model.intVar(1, n);
-            IntVar min = model.intVar(1, n);
-            model.max(max, renban).post();
-            model.min(min, renban).post();
-            max.sub(min).eq(renban.length - 1).post();
+            model.addAllDifferent(renban);
+            IntVar max = model.newIntVar(1, n, "renbanMax");
+            IntVar min = model.newIntVar(1, n, "renbanMin");
+            model.addMaxEquality(max, renban);
+            model.addMinEquality(min, renban);
+            model.addEqualityWithOffset(min, max, renban.length - 1);
         }
-    }
-
-    @Override
-    protected void buildDokeFile(StringBuilder sb) {
-
     }
 }

@@ -1,13 +1,14 @@
-import org.chocosolver.solver.constraints.Constraint;
-import org.chocosolver.solver.expression.discrete.arithmetic.ArExpression;
-import org.chocosolver.solver.expression.discrete.relational.ReExpression;
-import org.chocosolver.solver.variables.IntVar;
+import com.google.ortools.sat.Constraint;
+import com.google.ortools.sat.CpModel;
+import com.google.ortools.sat.IntVar;
+import com.google.ortools.sat.Literal;
+import com.google.ortools.util.Domain;
 
 import java.util.HashMap;
 
 public class AdjacentCellSudoku extends VariantPuzzle{
     public static interface AdjacentCellFunction {
-        ReExpression adjCellConstraint(IntVar x, IntVar y);
+        Literal adjCellConstraint(IntVar x, IntVar y, AbstractPuzzle p);
     }
     HashMap<String, AdjacentCellFunction> functionMapping;
     String[][] rowGaps;
@@ -33,14 +34,36 @@ public class AdjacentCellSudoku extends VariantPuzzle{
             this.base = base;
         }
 
-        public AdjacentCellSudokuBuilder withKropkiWhiteConstraint() {
-            functionMapping.put("W", (x, y) -> x.sub(y).abs().eq(1));
+        public AdjacentCellSudokuBuilder withNegativeConstraintOf(String name, String negName) {
+            AdjacentCellFunction pos = functionMapping.get(name);
+            functionMapping.put(negName, (x, y, p) -> pos.adjCellConstraint(x, y, p).not());
+            return this;
+        }
+
+        public AdjacentCellSudokuBuilder withDifferenceConstraint(IntVar diff, String name) {
+            functionMapping.put(name, (x, y, p) -> p.varEquals(p.varAbs(p.varSub(x, y)), diff));
             kropkiWhite = true;
             return this;
         }
 
+        public AdjacentCellSudokuBuilder withDifferenceConstraints() {
+            int n = base.getN();
+            for (int i = 1; i < n; i++) {
+                withDifferenceConstraint(i, "" + i);
+            }
+            return this;
+        }
+
+        public AdjacentCellSudokuBuilder withDifferenceConstraint(int diff, String name) {
+            return withDifferenceConstraint(base.getModel().newIntVarFromDomain(new Domain(diff), "diff"), name);
+        }
+
+        public AdjacentCellSudokuBuilder withKropkiWhiteConstraint() {
+            return withDifferenceConstraint(1, "W");
+        }
+
         public AdjacentCellSudokuBuilder withKropkiBlackConstraint() {
-            functionMapping.put("B", (x, y) -> x.mul(2).eq(y).or(y.mul(2).eq(x)));
+            functionMapping.put("B", (x, y, p) -> p.varOr(p.varEquals(p.varMul(x, 2), y), p.varEquals(p.varMul(y, 2), x)));
             kropkiBlack = true;
             return this;
         }
@@ -52,13 +75,13 @@ public class AdjacentCellSudoku extends VariantPuzzle{
         }
 
         public AdjacentCellSudokuBuilder withXConstraint() {
-            functionMapping.put("X", (x, y) -> x.add(y).eq(10));
+            functionMapping.put("X", (x, y, p) -> p.varEquals(p.varAdd(x, y), 10));
             x = true;
             return this;
         }
 
         public AdjacentCellSudokuBuilder withVConstraint() {
-            functionMapping.put("V", (x, y) -> x.add(y).eq(5));
+            functionMapping.put("V", (x, y, p) -> p.varEquals(p.varAdd(x, y), 5));
             v = true;
             return this;
         }
@@ -100,7 +123,7 @@ public class AdjacentCellSudoku extends VariantPuzzle{
     private AdjacentCellSudoku(AbstractPuzzle base, HashMap<String, AdjacentCellFunction> functionMapping,
                                String[][] rowGaps, String[][] colGaps, boolean negativeConstraints,
                                boolean kropkiWhite, boolean kropkiBlack, boolean x, boolean v) {
-        this.base = base;
+        super(base);
         this.functionMapping = functionMapping;
         this.rowGaps = rowGaps;
         this.colGaps = colGaps;
@@ -120,10 +143,11 @@ public class AdjacentCellSudoku extends VariantPuzzle{
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n - 1; j++) {
                 if (functionMapping.containsKey(rowGaps[i][j])) {
-                    functionMapping.get(rowGaps[i][j]).adjCellConstraint(rows[i][j], rows[i][j + 1]).post();
+                    Literal conVar = functionMapping.get(rowGaps[i][j]).adjCellConstraint(rows[i][j], rows[i][j + 1], this);
+                    enforceBool(conVar);
                 } else if (negativeConstraints) {
                     for (AdjacentCellFunction fun : functionMapping.values()) {
-                        fun.adjCellConstraint(rows[i][j], rows[i][j + 1]).not().post();
+                        enforceBool(fun.adjCellConstraint(rows[i][j], rows[i][j + 1], this).not());
                     }
                 }
             }
@@ -133,37 +157,13 @@ public class AdjacentCellSudoku extends VariantPuzzle{
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n - 1; j++) {
                 if (functionMapping.containsKey(colGaps[i][j])) {
-                    functionMapping.get(colGaps[i][j]).adjCellConstraint(cols[i][j], cols[i][j + 1]).post();
+                    enforceBool(functionMapping.get(colGaps[i][j]).adjCellConstraint(cols[i][j], cols[i][j + 1], this));
                 } else if (negativeConstraints) {
                     for (AdjacentCellFunction fun : functionMapping.values()) {
-                        fun.adjCellConstraint(cols[i][j], cols[i][j + 1]).not().post();
+                        enforceBool(fun.adjCellConstraint(cols[i][j], cols[i][j + 1], this).not());
                     }
                 }
             }
         }
-    }
-
-    @Override
-    protected void buildDokeFile(StringBuilder sb) {
-        base.buildDokeFile(sb);
-        sb.append("ADJACENT CELL\n");
-        buildGrid(sb, rowGaps);
-        buildGrid(sb, colGaps);
-        if (negativeConstraints) {
-            sb.append("NEGATIVE\n");
-        }
-        if (kropkiWhite) {
-            sb.append("KROPKI WHITE\n");
-        }
-        if (kropkiBlack) {
-            sb.append("KROPKI BLACK\n");
-        }
-        if (x) {
-            sb.append("X CONSTRAINT\n");
-        }
-        if (v) {
-            sb.append("V CONSTRAINT\n");
-        }
-        sb.append("END ADJACENT CELL\n");
     }
 }

@@ -57,7 +57,7 @@ public class CombinationTest extends SudokuTest {
                 {8, 8}
         });
 
-        int[][] solution = {
+        long[][] solution = {
                 {1, 8, 9, 2, 3, 4, 5, 6, 7},
                 {2, 5, 4, 1, 6, 7, 9, 3, 8},
                 {3, 7, 6, 5, 8, 9, 1, 2, 4},
@@ -100,7 +100,7 @@ public class CombinationTest extends SudokuTest {
         int[] rowSums = {18, 0, 21, -1, 15, -1, 26, 13, 15};
         int[] colSums = {0, 0, 0, -1, 0, -1, 10, 23, 22};
 
-        int[][] solution = {
+        long[][] solution = {
                 {3, 6, 9, 7, 5, 2, 4, 1, 8},
                 {8, 4, 1, 9, 3, 6, 2, 7, 5},
                 {5, 2, 7, 1, 8, 4, 6, 3, 9},
@@ -115,11 +115,13 @@ public class CombinationTest extends SudokuTest {
         AbstractPuzzle regular = new RegularSudoku.RegularSudokuBuilder()
                 .withGivens(givens)
                 .build();
-        AbstractPuzzle nonconsecutive = new NonconsecutiveSudoku.NonconsecutiveSudokuBuilder(regular)
+        AbstractPuzzle nonconsecutive = new AdjacentCellSudoku.AdjacentCellSudokuBuilder(regular)
+                .withKropkiWhiteConstraint()
+                .withNegativeConstraints(true)
                 .build();
         AbstractPuzzle sandwich = new SandwichSudoku.SandwichSudokuBuilder(nonconsecutive)
-                .withRowSums(rowSums)
-                .withColSums(colSums)
+                .withLeftRowSums(rowSums)
+                .withTopColSums(colSums)
                 .build();
 
         compareSolutions(sandwich.solve(), solution);
@@ -128,13 +130,76 @@ public class CombinationTest extends SudokuTest {
                 .withGivens(givens)
                 .build();
         AbstractPuzzle sandwich2 = new SandwichSudoku.SandwichSudokuBuilder(regular2)
-                .withRowSums(rowSums)
-                .withColSums(colSums)
+                .withLeftRowSums(rowSums)
+                .withTopColSums(colSums)
                 .build();
-        AbstractPuzzle nonconsecutive2 = new NonconsecutiveSudoku.NonconsecutiveSudokuBuilder(sandwich2)
+        AbstractPuzzle nonconsecutive2 = new AdjacentCellSudoku.AdjacentCellSudokuBuilder(sandwich2)
+                .withKropkiWhiteConstraint()
+                .withNegativeConstraints(true)
                 .build();
 
         compareSolutions(nonconsecutive2.solve(), solution);
+    }
+
+    @Test
+    public void kingThermo() {
+        List<int[][]> thermos = new ArrayList<>();
+        thermos.add(new int[][]{
+                {1, 3},
+                {1, 2},
+                {1, 1},
+                {2, 1}
+        });
+        thermos.add(new int[][]{
+                {3, 1},
+                {3, 2},
+                {3, 3}
+        });
+        thermos.add(new int[][]{
+                {1, 5},
+                {2, 5},
+                {3, 5}
+        });
+        thermos.add(new int[][]{
+                {0, 6},
+                {1, 6},
+                {2, 6},
+                {3, 6},
+                {4, 6},
+                {5, 6},
+                {6, 6},
+                {7, 6},
+        });
+        thermos.add(new int[][] {
+                {3, 7},
+                {4, 7},
+                {5, 7},
+                {6, 7}
+        });
+        thermos.add(new int[][] {
+                {6, 1},
+                {6, 0},
+                {7, 0},
+                {8, 0}
+        });
+        thermos.add(new int[][] {
+                {6, 3},
+                {7, 3},
+                {8, 3},
+                {8, 4},
+                {8, 5},
+                {7, 5},
+                {6, 5}
+        });
+
+        AbstractPuzzle puzzle = new RegularSudoku.RegularSudokuBuilder()
+                .build();
+        puzzle = new KingSudoku.KingSudokuBuilder(puzzle)
+                .build();
+        puzzle = new ThermoSudoku.ThermoSudokuBuilder(puzzle, thermos)
+                .build();
+
+        puzzle.printSolution();
     }
 
     @Test
@@ -179,7 +244,7 @@ public class CombinationTest extends SudokuTest {
                 {1, 7}
         });
 
-        int[][] solution = {
+        long[][] solution = {
                 {1, 3, 5, 9, 4, 2, 7, 8, 6},
                 {9, 7, 8, 6, 1, 5, 3, 4, 2},
                 {6, 4, 2, 3, 7, 8, 9, 1, 5},
@@ -198,17 +263,21 @@ public class CombinationTest extends SudokuTest {
                 .build();
         AbstractPuzzle knight = new KnightSudoku.KnightSudokuBuilder(thermo)
                 .build();
-        AbstractPuzzle killer = new KillerSudoku.KillerSudokuBuilder(knight, cages, cageSums)
+        AbstractPuzzle killer = new KillerSudoku.KillerSudokuBuilder(knight)
+                .withCagesGrid(cages)
+                .withCageSumInts(cageSums)
                 .build();
 
-        int[][] solverSolution = killer.solve();
+        long[][] solverSolution = killer.solve();
 
         compareSolutions(solverSolution, solution);
 
         AbstractPuzzle regular2 = new RegularSudoku.RegularSudokuBuilder()
                 .withGivens(givens)
                 .build();
-        AbstractPuzzle killer2 = new KillerSudoku.KillerSudokuBuilder(regular2, cages, cageSums)
+        AbstractPuzzle killer2 = new KillerSudoku.KillerSudokuBuilder(regular2)
+                .withCagesGrid(cages)
+                .withCageSumInts(cageSums)
                 .build();
         AbstractPuzzle knight2 = new KnightSudoku.KnightSudokuBuilder(killer2)
                 .build();
@@ -224,7 +293,7 @@ public class CombinationTest extends SudokuTest {
         givens[4][2] = 1;
         givens[5][6] = 2;
 
-        int[][] solution = {
+        long[][] solution = {
                 {4, 8, 3, 7, 2, 6, 1, 5, 9},
                 {7, 2, 6, 1, 5, 9, 4, 8, 3},
                 {1, 5, 9, 4, 8, 3, 7, 2, 6},
@@ -243,7 +312,9 @@ public class CombinationTest extends SudokuTest {
                 .build();
         AbstractPuzzle knight = new KnightSudoku.KnightSudokuBuilder(king)
                 .build();
-        AbstractPuzzle nonconsecutive = new NonconsecutiveSudoku.NonconsecutiveSudokuBuilder(knight)
+        AbstractPuzzle nonconsecutive = new AdjacentCellSudoku.AdjacentCellSudokuBuilder(knight)
+                .withKropkiWhiteConstraint()
+                .withNegativeConstraints(true)
                 .build();
 
         compareSolutions(nonconsecutive.solve(), solution);
@@ -251,7 +322,9 @@ public class CombinationTest extends SudokuTest {
         AbstractPuzzle regular2 = new RegularSudoku.RegularSudokuBuilder()
                 .withGivens(givens)
                 .build();
-        AbstractPuzzle nonconsecutive2 = new NonconsecutiveSudoku.NonconsecutiveSudokuBuilder(regular2)
+        AbstractPuzzle nonconsecutive2 = new AdjacentCellSudoku.AdjacentCellSudokuBuilder(regular2)
+                .withKropkiWhiteConstraint()
+                .withNegativeConstraints(true)
                 .build();
         AbstractPuzzle knight2 = new KnightSudoku.KnightSudokuBuilder(nonconsecutive2)
                 .build();
@@ -300,7 +373,9 @@ public class CombinationTest extends SudokuTest {
         AbstractPuzzle regular = new RegularSudoku.RegularSudokuBuilder()
                 .withGivens(givens)
                 .build();
-        AbstractPuzzle killer = new KillerSudoku.KillerSudokuBuilder(regular, cages, cageSums)
+        AbstractPuzzle killer = new KillerSudoku.KillerSudokuBuilder(regular)
+                .withCagesGrid(cages)
+                .withCageSumInts(cageSums)
                 .build();
         AbstractPuzzle littleKiller = new LittleKillerSudoku.LittleKillerSudokuBuilder(killer)
                 .withDownDiagonal(34)
@@ -308,7 +383,7 @@ public class CombinationTest extends SudokuTest {
                 .withTopColSums(topColSums, topColDirs)
                 .build();
 
-        int[][] solution = {
+        long[][] solution = {
                 {2, 4, 3, 1, 9, 7, 5, 8, 6},
                 {6, 1, 8, 3, 4, 5, 2, 7, 9},
                 {9, 5, 7, 6, 2, 8, 1, 3, 4},

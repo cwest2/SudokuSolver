@@ -27,7 +27,7 @@ public class SkyscraperTest extends SudokuTest {
                 .withTopColSums(topColSums)
                 .build();
 
-        int[][] solution = {
+        long[][] solution = {
                 {1, 4, 7, 9, 3, 2, 6, 5, 8},
                 {8, 2, 6, 1, 4, 5, 9, 3, 7},
                 {3, 5, 9, 6, 7, 8, 4, 1, 2},

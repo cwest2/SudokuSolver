@@ -1,4 +1,4 @@
-import org.chocosolver.solver.variables.IntVar;
+import com.google.ortools.sat.IntVar;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -69,7 +69,7 @@ public class ExtraRegionSudoku extends VariantPuzzle {
     }
 
     private ExtraRegionSudoku(AbstractPuzzle base, List<int[][]> regions) {
-        this.base = base;
+        super(base);
         this.regions = regions;
     }
 
@@ -84,24 +84,7 @@ public class ExtraRegionSudoku extends VariantPuzzle {
                 int[] coord = region[i];
                 regionVars[i] = rows[coord[0]][coord[1]];
             }
-            model.allDifferent(regionVars).post();
+            model.addAllDifferent(regionVars);
         }
-    }
-
-    @Override
-    protected void buildDokeFile(StringBuilder sb) {
-        base.buildDokeFile(sb);
-        sb.append("EXTRA REGION\n");
-        for (int[][] region : regions) {
-            for (int[] coord : region) {
-                sb.append(coord[0]);
-                sb.append(" ");
-                sb.append(coord[1]);
-                sb.append("\n");
-            }
-            sb.append("\n");
-        }
-        sb.append("\n");
-        sb.append("END EXTRA REGION\n");
     }
 }

@@ -22,7 +22,7 @@ public class KnightTest extends SudokuTest{
         AbstractPuzzle knight = new KnightSudoku.KnightSudokuBuilder(regular)
                 .build();
 
-        int[][] solution = {
+        long[][] solution = {
                 {2, 3, 9, 7, 1, 4, 5, 6, 8},
                 {8, 6, 4, 9, 2, 5, 3, 7, 1},
                 {7, 1, 5, 8, 6, 3, 9, 4, 2},

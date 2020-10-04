@@ -18,7 +18,7 @@ public class LatinSquareTest {
 
         AbstractPuzzle latinSquare = new LatinSquare.LatinSquareBuilder().withGivens(givens).build();
 
-        int[][] solution = latinSquare.solve();
+        long[][] solution = latinSquare.solve();
 
         for (int i = 0; i < 9; i++) {
             for (int j = 0; j < 9; j++) {
@@ -45,7 +45,7 @@ public class LatinSquareTest {
                 .withSize(5)
                 .build();
 
-        int[][] solution = latinSquare.solve();
+        long[][] solution = latinSquare.solve();
 
         for (int i = 0; i < 5; i++) {
             for (int j = 0; j < 5; j++) {
@@ -54,3 +54,5 @@ public class LatinSquareTest {
         }
     }
 }
+
+

@@ -1,6 +1,4 @@
-import org.chocosolver.solver.Model;
-import org.chocosolver.solver.constraints.Constraint;
-import org.chocosolver.solver.variables.IntVar;
+import com.google.ortools.sat.*;
 
 public class XSumSudoku extends VariantPuzzle {
 
@@ -8,6 +6,10 @@ public class XSumSudoku extends VariantPuzzle {
     int[] topColSums;
     int[] rightRowSums;
     int[] bottomColSums;
+    Literal[] leftRowConds;
+    Literal[] topColConds;
+    Literal[] rightRowConds;
+    Literal[] bottomColConds;
 
     public static class XSumSudokuBuilder {
         AbstractPuzzle base;
@@ -15,6 +17,10 @@ public class XSumSudoku extends VariantPuzzle {
         int[] topColSums = null;
         int[] rightRowSums = null;
         int[] bottomColSums = null;
+        Literal[] leftRowConds = null;
+        Literal[] topColConds = null;
+        Literal[] rightRowConds = null;
+        Literal[] bottomColConds = null;
 
         public int[] emptySums(int n) {
             int[] sums = new int[n];
@@ -48,38 +54,81 @@ public class XSumSudoku extends VariantPuzzle {
             return this;
         }
 
+        public XSumSudokuBuilder withLeftRowConds(Literal[] leftRowConds) {
+            this.leftRowConds = leftRowConds;
+            return this;
+        }
+
+        public XSumSudokuBuilder withTopColConds(Literal[] topColConds) {
+            this.topColConds = topColConds;
+            return this;
+        }
+
+        public XSumSudokuBuilder withRightRowConds(Literal[] rightRowConds) {
+            this.rightRowConds = rightRowConds;
+            return this;
+        }
+
+        public XSumSudokuBuilder withBottomColConds(Literal[] bottomColConds) {
+            this.bottomColConds = bottomColConds;
+            return this;
+        }
+
         public XSumSudoku build() {
+            int n = base.getN();
             if (leftRowSums == null) {
-                leftRowSums = emptySums(base.getN());
+                leftRowSums = emptySums(n);
             }
             if (topColSums == null) {
-                topColSums = emptySums(base.getN());
+                topColSums = emptySums(n);
             }
             if (rightRowSums == null) {
-                rightRowSums = emptySums(base.getN());
+                rightRowSums = emptySums(n);
             }
             if (bottomColSums == null) {
-                bottomColSums = emptySums(base.getN());
+                bottomColSums = emptySums(n);
             }
-            return new XSumSudoku(base, leftRowSums, topColSums, rightRowSums, bottomColSums);
+            if (leftRowConds == null) {
+                leftRowConds = new IntVar[n];
+            }
+            if (topColConds == null) {
+                topColConds = new IntVar[n];
+            }
+            if (rightRowConds == null) {
+                rightRowConds = new IntVar[n];
+            }
+            if (bottomColConds == null) {
+                bottomColConds = new IntVar[n];
+            }
+            return new XSumSudoku(base, leftRowSums, topColSums, rightRowSums, bottomColSums,
+                    leftRowConds, topColConds, rightRowConds, bottomColConds);
         }
     }
 
-    public XSumSudoku(AbstractPuzzle base, int[] leftRowSums, int[] topColSums, int[] rightRowSums, int[] bottomColSums) {
-        this.base = base;
+    public XSumSudoku(AbstractPuzzle base, int[] leftRowSums, int[] topColSums, int[] rightRowSums, int[] bottomColSums,
+                      Literal[] leftRowConds, Literal[] topColConds, Literal[] rightRowConds, Literal[] bottomColConds) {
+        super(base);
         this.leftRowSums = leftRowSums;
         this.topColSums = topColSums;
         this.rightRowSums = rightRowSums;
         this.bottomColSums = bottomColSums;
+        this.leftRowConds = leftRowConds;
+        this.topColConds = topColConds;
+        this.rightRowConds = rightRowConds;
+        this.bottomColConds = bottomColConds;
     }
 
-    private Constraint getXSumConstraint(Model model, IntVar[] row, int sum) {
+    private Constraint getXSumConstraint(CpModel model, IntVar[] row, int sum, Literal cond) {
         IntVar rowStart = row[0];
         IntVar[] rowSumVars = new IntVar[row.length];
         for (int i = 0; i < row.length; i++) {
-            rowSumVars[i] = row[i].mul(rowStart.gt(i).intVar()).intVar();
+            rowSumVars[i] = varMul(row[i], varGt(rowStart, i));
         }
-        return model.sum(rowSumVars, "=", sum);
+        Constraint constraint = model.addEquality(LinearExpr.sum(rowSumVars), sum);
+        if (cond != null) {
+            constraint.onlyEnforceIf(cond);
+        }
+        return constraint;
     }
 
     @Override
@@ -91,28 +140,17 @@ public class XSumSudoku extends VariantPuzzle {
 
         for (int i = 0; i < n; i++) {
             if (leftRowSums[i] > 0) {
-                getXSumConstraint(model, rows[i], leftRowSums[i]).post();
+                getXSumConstraint(model, rows[i], leftRowSums[i], leftRowConds[i]);
             }
             if (topColSums[i] > 0) {
-                getXSumConstraint(model, cols[i], topColSums[i]).post();
+                getXSumConstraint(model, cols[i], topColSums[i], topColConds[i]);
             }
             if (rightRowSums[i] > 0) {
-                getXSumConstraint(model, makeReversedArray(rows[i]), rightRowSums[i]).post();
+                getXSumConstraint(model, makeReversedArray(rows[i]), rightRowSums[i], rightRowConds[i]);
             }
             if (bottomColSums[i] > 0) {
-                getXSumConstraint(model, makeReversedArray(cols[i]), bottomColSums[i]).post();
+                getXSumConstraint(model, makeReversedArray(cols[i]), bottomColSums[i], bottomColConds[i]);
             }
         }
-    }
-
-    @Override
-    protected void buildDokeFile(StringBuilder sb) {
-        base.buildDokeFile(sb);
-        sb.append("XSUMS\n");
-        buildRow(sb, leftRowSums);
-        buildRow(sb, topColSums);
-        buildRow(sb, rightRowSums);
-        buildRow(sb, bottomColSums);
-        sb.append("END XSUMS\n");
     }
 }

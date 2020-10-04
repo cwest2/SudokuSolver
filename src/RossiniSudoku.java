@@ -1,6 +1,4 @@
-import org.chocosolver.solver.constraints.Constraint;
-import org.chocosolver.solver.expression.discrete.relational.ReExpression;
-import org.chocosolver.solver.variables.IntVar;
+import com.google.ortools.sat.IntVar;
 
 public class RossiniSudoku extends VariantPuzzle {
     String[] leftRowDirs;
@@ -81,7 +79,7 @@ public class RossiniSudoku extends VariantPuzzle {
     private RossiniSudoku(AbstractPuzzle base,
                           String[] leftRowDirs, String[] topColDirs, String[] rightRowDirs, String[] bottomColDirs,
                           String left, String right, String up, String down, int lrLen, int udLen, boolean negative) {
-        this.base = base;
+        super(base);
         this.leftRowDirs = leftRowDirs;
         this.topColDirs = topColDirs;
         this.rightRowDirs = rightRowDirs;
@@ -95,18 +93,18 @@ public class RossiniSudoku extends VariantPuzzle {
         this.negative = negative;
     }
 
-    private ReExpression incConstraint(IntVar[] row, int len) {
-        ReExpression con = row[0].lt(row[1]);
+    private IntVar incConstraint(IntVar[] row, int len) {
+        IntVar con = varLt(row[0], row[1]);
         for (int j = 1; j < len - 1; j++) {
-            con = con.and(row[j].lt(row[j + 1]));
+            con = varAnd(con, varLt(row[j], row[j + 1]));
         }
         return con;
     }
 
-    private ReExpression decConstraint(IntVar[] row, int len) {
-        ReExpression con = row[0].gt(row[1]);
+    private IntVar decConstraint(IntVar[] row, int len) {
+        IntVar con = varGt(row[0], row[1]);
         for (int j = 1; j < len - 1; j++) {
-            con = con.and(row[j].gt(row[j + 1]));
+            con = varAnd(con, varGt(row[j], row[j + 1]));
         }
         return con;
     }
@@ -115,12 +113,12 @@ public class RossiniSudoku extends VariantPuzzle {
         for (int i = 0; i < n; i++) {
             IntVar[] row = grid[i];
             if (dirs[i].equals(incDir)) {
-                incConstraint(row, len).post();
+                enforceBool(incConstraint(row, len));
             } else if (dirs[i].equals(decDir)) {
-                decConstraint(row, len).post();
+                enforceBool(decConstraint(row, len));
             } else if (negative) {
-                incConstraint(row, len).not().post();
-                decConstraint(row, len).not().post();
+                enforceBool(incConstraint(row, len).not());
+                enforceBool(decConstraint(row, len).not());
             }
         }
     }
@@ -135,10 +133,5 @@ public class RossiniSudoku extends VariantPuzzle {
         addRossiniConstraints(rightRowDirs, left, right, makeRowReversedGrid(rows), lrLen, n);
         addRossiniConstraints(topColDirs, down, up, cols, udLen, n);
         addRossiniConstraints(bottomColDirs, up, down, makeRowReversedGrid(cols), udLen, n);
-    }
-
-    @Override
-    protected void buildDokeFile(StringBuilder sb) {
-
     }
 }

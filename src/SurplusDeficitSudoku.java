@@ -1,4 +1,7 @@
-import org.chocosolver.solver.variables.IntVar;
+
+
+import com.google.ortools.sat.IntVar;
+import com.google.ortools.util.Domain;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -53,16 +56,8 @@ public class SurplusDeficitSudoku extends VariantPuzzle {
     }
 
     protected SurplusDeficitSudoku(AbstractPuzzle base, int[][] regions) {
-        this.base = base;
+        super(base);
         this.regions = regions;
-    }
-
-    @Override
-    protected void buildDokeFile(StringBuilder sb) {
-        base.buildDokeFile(sb);
-        sb.append("DEFICIT/SURPLUS\n");
-        buildGrid(sb, regions);
-        sb.append("END DEFICIT/SURPLUS\n");
     }
 
     @Override
@@ -88,14 +83,15 @@ public class SurplusDeficitSudoku extends VariantPuzzle {
             IntVar[] row = new IntVar[regionVars.size()];
             regionsVars.get(key).toArray(row);
             if (regionVars.size() <= n) {
-                model.allDifferent(row).post();
+                model.addAllDifferent(row);
             }
-            if (regionVars.size() > n) {
-                model.atLeastNValues(row, model.intVar(n), true).post();
+            if (regionVars.size() >= n) {
+                for (int i = 1; i <= n; i++) {
+                    IntVar loc = model.newIntVar(0, n - 1, "");
+                    IntVar val = model.newIntVarFromDomain(new Domain(i), "");
+                    model.addElement(loc, row, val);
+                }
             }
-//            if (row.length == n) {
-//                model.sum(row, "=", (n * (n + 1)) / 2).post();
-//            }
         }
     }
 }

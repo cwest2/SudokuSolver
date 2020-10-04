@@ -22,7 +22,7 @@ public class KingTest extends SudokuTest{
         AbstractPuzzle king = new KingSudoku.KingSudokuBuilder(regular)
                 .build();
 
-        int[][] solution = {
+        long[][] solution = {
                 {7, 6, 2, 4, 3, 1, 9, 5, 8},
                 {1, 9, 8, 6, 7, 5, 4, 2, 3},
                 {4, 3, 5, 9, 2, 8, 7, 1, 6},

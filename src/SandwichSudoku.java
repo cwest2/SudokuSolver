@@ -1,16 +1,24 @@
-import org.chocosolver.solver.Model;
-import org.chocosolver.solver.constraints.Constraint;
-import org.chocosolver.solver.variables.BoolVar;
-import org.chocosolver.solver.variables.IntVar;
+import com.google.ortools.constraintsolver.IntVarLocalSearchOperatorTemplate;
+import com.google.ortools.sat.*;
+import com.google.ortools.util.Domain;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 public class SandwichSudoku extends VariantPuzzle {
-    DokeVarCarrier[] rowSumCarriers;
-    DokeVarCarrier[] colSumCarriers;
+    IntVar[] leftRowSums;
+    IntVar[] topColSums;
+    IntVar[] rightRowSums;
+    IntVar[] bottomColSums;
 
-    DokeVarCarrier topBun;
-    DokeVarCarrier bottomBun;
+    Literal[] leftRowConds;
+    Literal[] topColConds;
+    Literal[] rightRowConds;
+    Literal[] bottomColConds;
+
+    IntVar topBun;
+    IntVar bottomBun;
 
     IntVar topBunVar;
     IntVar bottomBunVar;
@@ -25,15 +33,23 @@ public class SandwichSudoku extends VariantPuzzle {
 
     public static class SandwichSudokuBuilder {
         AbstractPuzzle base;
-        DokeVarCarrier[] rowSumCarriers;
-        DokeVarCarrier[] colSumCarriers;
-        DokeVarCarrier topBun = null;
-        DokeVarCarrier bottomBun = null;
+        IntVar[] leftRowSums;
+        IntVar[] topColSums;
+        IntVar[] rightRowSums;
+        IntVar[] bottomColSums;
 
-        public DokeVarCarrier[] emptySums(int n) {
-            DokeVarCarrier[] sums = new DokeVarCarrier[n];
+        IntVar topBun = null;
+        IntVar bottomBun = null;
+
+        Literal[] leftRowConds;
+        Literal[] topColConds;
+        Literal[] rightRowConds;
+        Literal[] bottomColConds;
+
+        public IntVar[] emptySums(int n) {
+            IntVar[] sums = new IntVar[n];
             for (int i = 0; i < n; i++) {
-                sums[i] = new DokeNull();
+                sums[i] = null;
             }
             return sums;
         }
@@ -42,95 +58,161 @@ public class SandwichSudoku extends VariantPuzzle {
             this.base = base;
         }
 
-        public SandwichSudokuBuilder withRowSumSets(int[][] rowSumSets) {
+        public SandwichSudokuBuilder withRowSumSets(long[][] rowSumSets) {
             int n = rowSumSets.length;
-            DokeVarCarrier[] rowSumCarriers = new DokeVarCarrier[n];
+            IntVar[] rowSumCarriers = new IntVar[n];
             for (int i = 0; i < n; i++) {
-                rowSumCarriers[i] = rowSumSets[i].length > 0 ? new DokeSetVar(rowSumSets[i]) : new DokeNull();
+                rowSumCarriers[i] = rowSumSets[i].length > 0 ? base.makeSetVar(rowSumSets[i], "l_sum" + i): null;
             }
-            this.rowSumCarriers = rowSumCarriers;
+            this.leftRowSums = rowSumCarriers;
             return this;
         }
 
-        public SandwichSudokuBuilder withColSumSets(int[][] colSumSets) {
+        public SandwichSudokuBuilder withColSumSets(long[][] colSumSets) {
             int n = colSumSets.length;
-            DokeVarCarrier[] colSumCarriers = new DokeVarCarrier[n];
+            IntVar[] colSumCarriers = new IntVar[n];
             for (int i = 0; i < n; i++) {
-                colSumCarriers[i] = colSumSets[i].length > 0 ? new DokeSetVar(colSumSets[i]) : new DokeNull();
+                colSumCarriers[i] = colSumSets[i].length > 0 ? base.makeSetVar(colSumSets[i], "t_sum" + i) : null;
             }
-            this.colSumCarriers = colSumCarriers;
+            this.topColSums = colSumCarriers;
             return this;
         }
 
-        public SandwichSudokuBuilder withRowSums(int[] rowSums) {
+        public SandwichSudokuBuilder withLeftRowSums(int[] rowSums) {
             int n = rowSums.length;
-            DokeVarCarrier[] rowSumCarriers = new DokeVarCarrier[n];
+            IntVar[] rowSumCarriers = new IntVar[n];
             for (int i = 0; i < n; i++) {
-                rowSumCarriers[i] = rowSums[i] >= 0 ? new DokeInt(rowSums[i]) : new DokeNull();
+                rowSumCarriers[i] = rowSums[i] >= 0 ? base.makeConstVar(rowSums[i], "l_sum" + i) : null;
             }
-            this.rowSumCarriers = rowSumCarriers;
+            this.leftRowSums = rowSumCarriers;
             return this;
         }
 
-        public SandwichSudokuBuilder withColSums(int[] colSums) {
-            int n = colSums.length;
-            DokeVarCarrier[] colSumCarriers = new DokeVarCarrier[n];
+        public SandwichSudokuBuilder withRightRowSums(int[] rowSums) {
+            int n = rowSums.length;
+            IntVar[] rowSumCarriers = new IntVar[n];
             for (int i = 0; i < n; i++) {
-                colSumCarriers[i] = colSums[i] >= 0 ? new DokeInt(colSums[i]) : new DokeNull();
+                rowSumCarriers[i] = rowSums[i] >= 0 ? base.makeConstVar(rowSums[i], "r_sum" + i) : null;
             }
-            this.colSumCarriers = colSumCarriers;
+            this.rightRowSums = rowSumCarriers;
+            return this;
+        }
+
+        public SandwichSudokuBuilder withTopColSums(int[] colSums) {
+            int n = colSums.length;
+            IntVar[] colSumCarriers = new IntVar[n];
+            for (int i = 0; i < n; i++) {
+                colSumCarriers[i] = colSums[i] >= 0 ? base.makeConstVar(colSums[i], "t_sum" + i) : null;
+            }
+            this.topColSums = colSumCarriers;
+            return this;
+        }
+
+        public SandwichSudokuBuilder withBottomColSums(int[] colSums) {
+            int n = colSums.length;
+            IntVar[] colSumCarriers = new IntVar[n];
+            for (int i = 0; i < n; i++) {
+                colSumCarriers[i] = colSums[i] >= 0 ? base.makeConstVar(colSums[i], "b_sum" + i) : null;
+            }
+            this.bottomColSums = colSumCarriers;
             return this;
         }
 
         public SandwichSudokuBuilder withTopBun(int topBun) {
-            this.topBun = new DokeInt(topBun);
+            this.topBun = base.makeConstVar(topBun, "top_bun");
             return this;
         }
 
         public SandwichSudokuBuilder withBottomBun(int bottomBun) {
-            this.bottomBun = new DokeInt(bottomBun);
+            this.bottomBun = base.makeConstVar(bottomBun, "bottom_bun");
             return this;
         }
 
         public SandwichSudokuBuilder withTopBunRange(int lb, int ub) {
-            this.topBun = new DokeRangeVar(lb, ub);
+            this.topBun = base.makeRangeVar(lb, ub, "top_bun");
             return this;
         }
 
         public SandwichSudokuBuilder withBottomBunRange(int lb, int ub) {
-            this.bottomBun = new DokeRangeVar(lb, ub);
+            this.bottomBun = base.makeRangeVar(lb, ub, "bottom_bun");
+            return this;
+        }
+
+        public SandwichSudokuBuilder withLeftRowConds(Literal[] rowConds) {
+            this.leftRowConds = rowConds;
+            return this;
+        }
+
+        public SandwichSudokuBuilder withRightRowConds(Literal[] rowConds) {
+            this.rightRowConds = rowConds;
+            return this;
+        }
+
+        public SandwichSudokuBuilder withTopColConds(Literal[] colConds) {
+            this.topColConds = colConds;
+            return this;
+        }
+
+        public SandwichSudokuBuilder withBottomColConds(Literal[] colConds) {
+            this.bottomColConds = colConds;
             return this;
         }
 
         public SandwichSudoku build() {
             int n = base.getN();
-            if (rowSumCarriers == null) {
-                rowSumCarriers = emptySums(n);
+            if (leftRowSums == null) {
+                leftRowSums = emptySums(n);
             }
-            if (colSumCarriers == null) {
-                colSumCarriers = emptySums(n);
+            if (topColSums == null) {
+                topColSums = emptySums(n);
+            }
+            if (rightRowSums == null) {
+                rightRowSums = emptySums(n);
+            }
+            if (bottomColSums == null) {
+                bottomColSums = emptySums(n);
             }
             if (topBun == null) {
-                topBun = new DokeInt(n);
+                topBun = base.makeConstVar(n, "top_bun");
             }
             if (bottomBun == null) {
-                bottomBun = new DokeInt(1);
+                bottomBun = base.makeConstVar(1, "bottom_bun");
             }
-            return new SandwichSudoku(base, rowSumCarriers, colSumCarriers, topBun, bottomBun);
+            if (leftRowConds == null) {
+                leftRowConds = new IntVar[n];
+            }
+            if (topColConds == null) {
+                topColConds = new IntVar[n];
+            }
+            if (rightRowConds == null) {
+                rightRowConds = new IntVar[n];
+            }
+            if (bottomColConds == null) {
+                bottomColConds = new IntVar[n];
+            }
+            return new SandwichSudoku(base, leftRowSums, topColSums, rightRowSums, bottomColSums,
+                    topBun, bottomBun, leftRowConds, topColConds, rightRowConds, bottomColConds);
         }
     }
 
-    private SandwichSudoku(AbstractPuzzle base, DokeVarCarrier[] rowSumCarriers, DokeVarCarrier[] colSumCarriers, DokeVarCarrier topBun, DokeVarCarrier bottomBun) {
-        this.base = base;
-        this.rowSumCarriers = rowSumCarriers;
-        this.colSumCarriers = colSumCarriers;
+    private SandwichSudoku(AbstractPuzzle base, IntVar[] leftRowSums, IntVar[] topColSums, IntVar[] rightRowSums, IntVar[] bottomColSums,
+                           IntVar topBun, IntVar bottomBun, Literal[] leftRowConds, Literal[] topColConds, Literal[] rightRowConds, Literal[] bottomColConds) {
+        super(base);
+        this.leftRowSums = leftRowSums;
+        this.topColSums = topColSums;
+        this.rightRowSums = rightRowSums;
+        this.bottomColSums = bottomColSums;
         this.topBun = topBun;
         this.bottomBun = bottomBun;
+        this.leftRowConds = leftRowConds;
+        this.topColConds = topColConds;
+        this.rightRowConds = rightRowConds;
+        this.bottomColConds = bottomColConds;
     }
 
-    private void populateMinDists(Model model, IntVar topBun, IntVar bottomBun, int n) {
-        IntVar totalSum = model.intVar(0);
-        IntVar totalDist = model.intVar(0);
+    private void populateMinDists(CpModel model, IntVar topBun, IntVar bottomBun, int n) {
+        IntVar totalSum = model.newIntVarFromDomain(new Domain(0), "totalSum0");
+        IntVar totalDist = model.newIntVarFromDomain(new Domain(0), "totalDist0");
 
         maxTotals = new IntVar[n + 1];
         minDists = new IntVar[n + 1];
@@ -138,19 +220,40 @@ public class SandwichSudoku extends VariantPuzzle {
         maxTotals[0] = totalSum;
         minDists[0] = totalDist;
 
+        int maxSum = n * (n + 1) / 2;
+
         for (int i = 1; i <= n; i++) {
             int digit = n - i + 1;
-            BoolVar isNotBun = topBun.eq(digit).or(bottomBun.eq(digit)).not().boolVar();
-            totalSum = totalSum.add(isNotBun.intVar().mul(digit)).intVar();
-            totalDist = totalDist.add(isNotBun.intVar()).intVar();
+
+            IntVar isTopBun = varEquals(topBun, digit);
+
+            IntVar isBottomBun = varEquals(bottomBun, digit);
+
+            IntVar isBun = varOr(isTopBun, isBottomBun);
+
+            IntVar isNotBun = varNot(isBun);
+
+            IntVar digitVar = model.newIntVarFromDomain(new Domain(digit), "digitVar" + i);
+
+            IntVar scaledVar = model.newIntVar(0, n, "scaledVar" + i);
+            model.addProductEquality(scaledVar, new IntVar[] {digitVar, isNotBun});
+
+            IntVar newTotalSum = model.newIntVar(0, maxSum, "totalSum" + i);
+            model.addEquality(newTotalSum, LinearExpr.sum(new IntVar[] {scaledVar, totalSum}));
+
+            IntVar newTotalDist = model.newIntVar(0, n, "totalDist" + i);
+            model.addEquality(newTotalDist, LinearExpr.sum(new IntVar[] {totalDist, isNotBun}));
+
+            totalSum = newTotalSum;
+            totalDist = newTotalDist;
             maxTotals[i] = totalSum;
             minDists[i] = totalDist;
         }
     }
 
-    private void populateMaxDists(Model model, IntVar topBun, IntVar bottomBun, int n) {
-        IntVar totalSum = model.intVar(0);
-        IntVar totalDist = model.intVar(0);
+    private void populateMaxDists(CpModel model, IntVar topBun, IntVar bottomBun, int n) {
+        IntVar totalSum = model.newIntVarFromDomain(new Domain(0), "totalSum0");
+        IntVar totalDist = model.newIntVarFromDomain(new Domain(0), "totalDist0");
 
         minTotals = new IntVar[n + 1];
         maxDists = new IntVar[n + 1];
@@ -158,66 +261,130 @@ public class SandwichSudoku extends VariantPuzzle {
         minTotals[0] = totalSum;
         maxDists[0] = totalDist;
 
+        int maxSum = n * (n + 1) / 2;
+
         for (int i = 1; i <= n; i++) {
-            BoolVar isNotBun = topBun.eq(i).or(bottomBun.eq(i)).not().boolVar();
-            totalSum = totalSum.add(isNotBun.intVar().mul(i)).intVar();
-            totalDist = totalDist.add(isNotBun.intVar()).intVar();
+            int digit = i;
+
+            IntVar isTopBun = varEquals(topBun, digit);
+
+            IntVar isBottomBun = varEquals(bottomBun, digit);
+
+            IntVar isBun = varOr(isTopBun, isBottomBun);
+
+            IntVar isNotBun = varNot(isBun);
+
+            IntVar digitVar = model.newIntVarFromDomain(new Domain(digit), "digitVar" + i);
+
+            IntVar scaledVar = model.newIntVar(0, n, "scaledVar" + i);
+            model.addProductEquality(scaledVar, new IntVar[] {digitVar, isNotBun});
+
+            IntVar newTotalSum = model.newIntVar(0, maxSum, "totalSum" + i);
+            model.addEquality(newTotalSum, LinearExpr.sum(new IntVar[] {scaledVar, totalSum}));
+
+            IntVar newTotalDist = model.newIntVar(0, n, "totalDist" + i);
+            model.addEquality(newTotalDist, LinearExpr.sum(new IntVar[] {totalDist, isNotBun}));
+
+            totalSum = newTotalSum;
+            totalDist = newTotalDist;
             minTotals[i] = totalSum;
             maxDists[i] = totalDist;
         }
     }
 
-    private void minDistanceConstraint(Model model, IntVar sum, int n, IntVar distance) {
-        String varName = "Min dist ";
-        varName += sum;
-        IntVar minDistance = model.intVar(varName, 0, n);
+    private List<Constraint> minDistanceConstraint(CpModel model, IntVar sum, int n, IntVar distance) {
+        List<Constraint> constraints = new ArrayList<>();
 
-        maxDistVars.put(varName, minDistance);
+//        constraints.add(maxTotals[0].gt(sum).and(sum.ne(0)).not().decompose());
 
         for (int i = 1; i <= n; i++) {
-            maxTotals[i].ge(sum).and(maxTotals[i - 1].lt(sum)).imp(minDistance.eq(minDists[i])).post();
-            maxTotals[i].ge(sum).and(maxTotals[i - 1].lt(sum)).imp(distance.ge(minDists[i].add(1))).post();
+
+
+            IntVar gtTotalI = varGe(maxTotals[i], sum);
+
+            IntVar ltTotalIP1 = varLt(maxTotals[i - 1], sum);
+
+            IntVar inBucketI = varAnd(gtTotalI, ltTotalIP1);
+
+            IntVar shiftedDist = model.newIntVar(1, n, "shiftedDist" + i);
+            model.addEqualityWithOffset(shiftedDist, minDists[i], 1);
+
+            Constraint minDistConstraint = model.addGreaterOrEqual(distance, shiftedDist);
+
+            minDistConstraint.onlyEnforceIf(inBucketI);
+
+            constraints.add(minDistConstraint);
         }
+
+        return constraints;
     }
 
-    private void maxDistanceConstraint(Model model, IntVar sum, int n, IntVar distance) {
-        String varName = "Max dist ";
-        varName += sum;
-        IntVar maxDistance = model.intVar(varName, 0, n);
+    private List<Constraint> maxDistanceConstraint(CpModel model, IntVar sum, int n, IntVar distance) {
+        List<Constraint> constraints = new ArrayList<>();
 
-        maxDistVars.put(varName, maxDistance);
+//        constraints.add(maxTotals[0].gt(sum).and(sum.ne(0)).not().decompose());
 
         for (int i = 0; i < n; i++) {
-            minTotals[i].le(sum).and(minTotals[i+1].gt(sum)).imp(maxDistance.eq(maxDists[i])).post();
-            minTotals[i].le(sum).and(minTotals[i+1].gt(sum)).imp(distance.le(maxDists[i].add(1))).post();
+            IntVar leTotalI = varLe(minTotals[i], sum);
+            IntVar gtTotalIp1 = varGt(minTotals[i + 1], sum);
+            IntVar inBucket1 = varAnd(leTotalI, gtTotalIp1);
+
+            IntVar shiftedDist = model.newIntVar(1, n, "shiftedDist" + i);
+            model.addEqualityWithOffset(shiftedDist, maxDists[i], 1);
+
+            Constraint maxDistanceConstraint = model.addLessOrEqual(distance, shiftedDist);
+            maxDistanceConstraint.onlyEnforceIf(inBucket1);
+
+            constraints.add(maxDistanceConstraint);
         }
 
-        minTotals[n].le(sum).imp(distance.le(maxDists[n].add(1))).post();
+        return constraints;
     }
 
-    private Constraint getSandwichConstraint(Model model, IntVar[] row, IntVar sum, IntVar topBun, IntVar bottomBun) {
+    private List<Constraint> getSandwichConstraint(CpModel model, IntVar[] row, IntVar sum, IntVar topBun, IntVar bottomBun) {
+        List<Constraint> constraints = new ArrayList<>();
+
         int n = row.length;
-        IntVar topBunLoc = model.intVar(0, n - 1);
-        IntVar bottomBunLoc = model.intVar(0, n - 1);
-        for(int i = 0; i < n; i++) {
-            model.ifThen(row[i].eq(topBun).decompose(),
-                    topBunLoc.eq(i).decompose());
-            model.ifThen(row[i].eq(bottomBun).decompose(),
-                    bottomBunLoc.eq(i).decompose());
-        }
-        IntVar start = topBunLoc.min(bottomBunLoc).intVar();
-        IntVar end = topBunLoc.max(bottomBunLoc).intVar();
+        IntVar topBunLoc = model.newIntVar(0, n - 1, sum.getName() + "_topBunLoc");
+        IntVar bottomBunLoc = model.newIntVar(0, n - 1, sum.getName() + "_bottomBunLoc");
+
+        model.addElement(topBunLoc, row, topBun);
+        model.addElement(bottomBunLoc, row, bottomBun);
+
+        IntVar start = model.newIntVar(0, n - 1, sum + "_start");
+        model.addMinEquality(start, new IntVar[] {topBunLoc, bottomBunLoc});
+
+        IntVar end = model.newIntVar(0, n - 1, sum + "_end");
+        model.addMaxEquality(end, new IntVar[] {topBunLoc, bottomBunLoc});
+
         IntVar[] rowSumVars = new IntVar[n];
         for(int i = 0; i < n; i++) {
-            rowSumVars[i] = row[i].mul(start.lt(i).and(end.gt(i)).intVar()).intVar();
+            IntVar iVar = model.newIntVarFromDomain(new Domain(i), "iVar" + i);
+
+            IntVar startLtI = varLt(start, iVar);
+
+            IntVar endGtI = varLt(iVar, end);
+
+            IntVar inSandwich = varAnd(startLtI, endGtI);
+
+            IntVar rowSumVar = model.newIntVar(0, n, sum.getName() + "_rowSumVar" + i);
+            model.addProductEquality(rowSumVar, new IntVar[] {inSandwich, row[i]});
+
+            rowSumVars[i] = rowSumVar;
         }
 
-        IntVar distance = end.sub(start).intVar();
+        constraints.add(model.addEquality(sum, LinearExpr.sum(rowSumVars)));
 
-        maxDistanceConstraint(model, sum, n, distance);
-        minDistanceConstraint(model, sum, n, distance);
+        IntVar negStart = model.newIntVar(-n + 1, -0, sum.getName() + "_negStart");
+        model.addAbsEquality(start, negStart);
 
-        return model.sum(rowSumVars, "=", sum);
+        IntVar distance = model.newIntVar(1, n - 1, sum.getName() + "_distance");
+        model.addEquality(distance, LinearExpr.sum(new IntVar[] {end, negStart}));
+
+//        constraints.addAll(maxDistanceConstraint(model, sum, n, distance));
+//        constraints.addAll(minDistanceConstraint(model, sum, n, distance));
+
+        return constraints;
     }
 
     @Override
@@ -227,35 +394,75 @@ public class SandwichSudoku extends VariantPuzzle {
         IntVar[][] cols = base.getCols();
         int n = base.getN();
 
-        IntVar[] rowSumVars = new IntVar[n];
-        IntVar[] colSumVars = new IntVar[n];
-        for (int i = 0; i < n; i++) {
-            rowSumVars[i] = rowSumCarriers[i].getVar(model);
-            colSumVars[i] = colSumCarriers[i].getVar(model);
-        }
-
-        topBunVar = topBun.getVar(model);
-        bottomBunVar = bottomBun.getVar(model);
+        topBunVar = topBun;
+        bottomBunVar = bottomBun;
 
         populateMaxDists(model, topBunVar, bottomBunVar, n);
         populateMinDists(model, topBunVar, bottomBunVar, n);
 
         for (int i = 0; i < n; i++) {
-            if (rowSumVars[i] != null) {
-                getSandwichConstraint(model, rows[i], rowSumVars[i], topBunVar, bottomBunVar).post();
+            if (leftRowSums[i] != null) {
+                for (Constraint constraint : getSandwichConstraint(model, rows[i], leftRowSums[i], topBunVar, bottomBunVar)) {
+                    if (leftRowConds[i] != null) {
+                        constraint.onlyEnforceIf(leftRowConds[i]);
+                    }
+                }
             }
-            if (colSumVars[i] != null) {
-                getSandwichConstraint(model, cols[i], colSumVars[i], topBunVar, bottomBunVar).post();
+
+            if (rightRowSums[i] != null) {
+                for (Constraint constraint : getSandwichConstraint(model, rows[i], rightRowSums[i], topBunVar, bottomBunVar)) {
+                    if (rightRowConds[i] != null) {
+                        constraint.onlyEnforceIf(rightRowConds[i]);
+                    }
+                }
+            }
+
+            if (topColSums[i] != null) {
+                for (Constraint constraint : getSandwichConstraint(model, cols[i], topColSums[i], topBunVar, bottomBunVar)) {
+                    if (topColConds[i] != null) {
+                        constraint.onlyEnforceIf(topColConds[i]);
+                    }
+                }
+            }
+
+            if (bottomColSums[i] != null) {
+                for (Constraint constraint : getSandwichConstraint(model, cols[i], bottomColSums[i], topBunVar, bottomBunVar)) {
+                    if (bottomColConds[i] != null) {
+                        constraint.onlyEnforceIf(bottomColConds[i]);
+                    }
+                }
             }
         }
 
-        IntVar maxSumVar = model.intVar(0);
-        for (IntVar sum : rowSumVars) {
-            maxSumVar = sum != null ? maxSumVar.max(sum).intVar() : maxSumVar;
+        int fullRowSum = n * (n + 1) / 2;
+
+        IntVar maxSumVar = model.newIntVar(0, fullRowSum, "maxSumVar");
+
+        List<IntVar> allSums = new ArrayList<>();
+        for (IntVar sum : leftRowSums) {
+            if (sum != null) {
+                allSums.add(sum);
+            }
         }
-        for (IntVar sum : colSumVars) {
-            maxSumVar = sum != null ? maxSumVar.max(sum).intVar() : maxSumVar;
+        for (IntVar sum : topColSums) {
+            if (sum != null) {
+                allSums.add(sum);
+            }
         }
+        for (IntVar sum : rightRowSums) {
+            if (sum != null) {
+                allSums.add(sum);
+            }
+        }
+        for (IntVar sum : bottomColSums) {
+            if (sum != null) {
+                allSums.add(sum);
+            }
+        }
+
+        IntVar[] allSumsArray = new IntVar[allSums.size()];
+
+        allSums.toArray(allSumsArray);
 
 //        int maxSum = 0;
 //        for (int sum : rowSums) {
@@ -265,13 +472,8 @@ public class SandwichSudoku extends VariantPuzzle {
 //            maxSum = Math.max(sum, maxSum);
 //        }
 
-        int fullRowSum = n * (n + 1) / 2;
+        model.addMaxEquality(maxSumVar, allSumsArray);
 
-        topBunVar.add(bottomBunVar).add(maxSumVar).le(fullRowSum).post();
-    }
-
-    @Override
-    protected void buildDokeFile(StringBuilder sb) {
-        throw new IllegalStateException("Not implemented");
+        model.addLessOrEqual(LinearExpr.sum(new IntVar[] {topBunVar, bottomBunVar, maxSumVar}), fullRowSum);
     }
 }

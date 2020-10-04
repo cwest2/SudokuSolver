@@ -1,124 +1,208 @@
-import org.chocosolver.solver.Model;
-import org.chocosolver.solver.variables.BoolVar;
-import org.chocosolver.solver.variables.IntVar;
+import com.google.ortools.sat.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class BattlefieldSudoku extends VariantPuzzle{
-    int[] rowSums;
-    int[] colSums;
+    int[] leftRowSums;
+    int[] topColSums;
+    int[] rightRowSums;
+    int[] bottomColSums;
+
+    Literal[] leftRowConds;
+    Literal[] topColConds;
+    Literal[] rightRowConds;
+    Literal[] bottomColConds;
 
     public static class BattlefieldSudokuBuilder {
         AbstractPuzzle base;
-        int[] rowSums;
-        int[] colSums;
+        int[] leftRowSums;
+        int[] topColSums;
+        int[] rightRowSums;
+        int[] bottomColSums;
+
+        Literal[] leftRowConds;
+        Literal[] topColConds;
+        Literal[] rightRowConds;
+        Literal[] bottomColConds;
 
         public BattlefieldSudokuBuilder(AbstractPuzzle base) {
             this.base = base;
         }
 
-        public BattlefieldSudokuBuilder withRowSums(int[] rowSums) {
-            this.rowSums = rowSums;
+        public BattlefieldSudokuBuilder withLeftRowSums(int[] rowSums) {
+            this.leftRowSums = rowSums;
             return this;
         }
 
-        public BattlefieldSudokuBuilder withColSums(int[] colSums) {
-            this.colSums = colSums;
+        public BattlefieldSudokuBuilder withTopColSums(int[] colSums) {
+            this.topColSums = colSums;
+            return this;
+        }
+
+        public BattlefieldSudokuBuilder withRightRowSums(int[] rowSums) {
+            this.rightRowSums = rowSums;
+            return this;
+        }
+
+        public BattlefieldSudokuBuilder withBottomColSums(int[] colSums) {
+            this.bottomColSums = colSums;
+            return this;
+        }
+
+        public BattlefieldSudokuBuilder withLeftRowConds(Literal[] conds) {
+            this.leftRowConds = conds;
+            return this;
+        }
+
+        public BattlefieldSudokuBuilder withTopColConds(Literal[] conds) {
+            this.topColConds = conds;
+            return this;
+        }
+
+        public BattlefieldSudokuBuilder withRightRowConds(Literal[] conds) {
+            this.rightRowConds = conds;
+            return this;
+        }
+
+        public BattlefieldSudokuBuilder withBottomColConds(Literal[] conds) {
+            this.bottomColConds = conds;
             return this;
         }
 
         public BattlefieldSudoku build() {
-            return new BattlefieldSudoku(base, rowSums, colSums);
-        }
-    }
-
-    private BattlefieldSudoku(AbstractPuzzle base, int[] rowSums, int[] colSums) {
-        this.base = base;
-        this.rowSums = rowSums;
-        this.colSums = colSums;
-    }
-
-    private void alternateAddBattlefieldConstraint(int sum, IntVar[] row, int n, Model model) {
-        IntVar leftArmy = row[0];
-        IntVar rightArmy = row[n - 1].intVar();
-        if (sum == 0) {
-            leftArmy.add(rightArmy).eq(n).post();
-        } else {
-            IntVar[] rowSumVars = new IntVar[n * 2];
-            IntVar[] revRow = makeReversedArray(row);
-            for (int i = 0; i < row.length; i++) {
-                rowSumVars[i] = row[i].mul(leftArmy.gt(i).intVar()).intVar();
-                rowSumVars[n + i] = revRow[i].mul(rightArmy.gt(i).intVar()).intVar();
+            int n = base.getN();
+            if (leftRowSums == null) {
+                leftRowSums = new int[n];
             }
-            IntVar fullSum = model.intVar(0, n * (n + 1));
-            model.sum(rowSumVars, "=", fullSum).post();
-            fullSum.sub((n * (n + 1)) / 2).abs().eq(sum).post();
+            if (topColSums == null) {
+                topColSums = new int[n];
+            }
+            if (rightRowSums == null) {
+                rightRowSums = new int[n];
+            }
+            if (bottomColSums == null) {
+                bottomColSums = new int[n];
+            }
+            if (leftRowConds == null) {
+                leftRowConds = new IntVar[n];
+            }
+            if (topColConds == null) {
+                topColConds = new IntVar[n];
+            }
+            if (rightRowConds == null) {
+                rightRowConds = new IntVar[n];
+            }
+            if (bottomColConds == null) {
+                bottomColConds = new IntVar[n];
+            }
+            return new BattlefieldSudoku(base, leftRowSums, topColSums, rightRowSums, bottomColSums,
+                    leftRowConds, topColConds, rightRowConds, bottomColConds);
         }
-
-        IntVar regionSize = leftArmy.add(rightArmy).sub(n).abs().intVar();
-
-        int minCells = 0;
-        int maxSum = 0;
-        int i = n;
-        while (maxSum < sum) {
-            maxSum += i;
-            minCells++;
-            i--;
-        }
-        regionSize.ge(minCells);
-
-        int maxCells = 0;
-        int minSum = 0;
-        i = 1;
-        while (minSum < sum) {
-            minSum += i;
-            i++;
-            maxCells++;
-        }
-        regionSize.le(maxCells);
     }
 
-    private void addBattlefieldConstraint(int sum, IntVar[] row, int n, Model model) {
+    private BattlefieldSudoku(AbstractPuzzle base, int[] leftRowSums, int[] topColSums, int[] rightRowSums, int[] bottomColSums,
+                              Literal[] leftRowConds, Literal[] topColConds, Literal[] rightRowConds, Literal[] bottomColConds) {
+        super(base);
+        this.leftRowSums = leftRowSums;
+        this.topColSums = topColSums;
+        this.rightRowSums = rightRowSums;
+        this.bottomColSums = bottomColSums;
+        this.leftRowConds = leftRowConds;
+        this.topColConds = topColConds;
+        this.rightRowConds = rightRowConds;
+        this.bottomColConds = bottomColConds;
+    }
+
+//    private void alternateAddBattlefieldConstraint(int sum, IntVar[] row, int n, CpModel model) {
+//        IntVar leftArmy = row[0];
+//        IntVar rightArmy = row[n - 1];
+//        if (sum == 0) {
+//            leftArmy.add(rightArmy).eq(n).post();
+//        } else {
+//            IntVar[] rowSumVars = new IntVar[n * 2];
+//            IntVar[] revRow = makeReversedArray(row);
+//            for (int i = 0; i < row.length; i++) {
+//                rowSumVars[i] = row[i].mul(leftArmy.gt(i).intVar()).intVar();
+//                rowSumVars[n + i] = revRow[i].mul(rightArmy.gt(i).intVar()).intVar();
+//            }
+//            IntVar fullSum = model.intVar(0, n * (n + 1));
+//            model.sum(rowSumVars, "=", fullSum).post();
+//            fullSum.sub((n * (n + 1)) / 2).abs().eq(sum).post();
+//        }
+//
+//        IntVar regionSize = leftArmy.add(rightArmy).sub(n).abs().intVar();
+//
+//        int minCells = 0;
+//        int maxSum = 0;
+//        int i = n;
+//        while (maxSum < sum) {
+//            maxSum += i;
+//            minCells++;
+//            i--;
+//        }
+//        regionSize.ge(minCells);
+//
+//        int maxCells = 0;
+//        int minSum = 0;
+//        i = 1;
+//        while (minSum < sum) {
+//            minSum += i;
+//            i++;
+//            maxCells++;
+//        }
+//        regionSize.le(maxCells);
+//    }
+
+    private List<Constraint> addBattlefieldConstraint(int sum, IntVar[] row, int n, CpModel model) {
+        List<Constraint> constraints = new ArrayList<>();
+
         IntVar leftArmy = row[0];
-        IntVar rightArmy = row[n - 1].intVar();
+        IntVar rightArmy = row[n - 1];
         if (sum == 0) {
-            leftArmy.add(rightArmy).eq(n).post();
+            constraints.add(enforceBool(varEquals(varAdd(leftArmy, rightArmy), n)));
         } else {
             IntVar[] sumVars = new IntVar[n];
             for (int i = 0; i < n; i++) {
-                BoolVar overlapCondition = leftArmy.gt(i).and(rightArmy.gt(n - i - 1)).boolVar();
-                BoolVar betweenCondition = leftArmy.le(i).and(rightArmy.le(n - i - 1)).boolVar();
-                sumVars[i] = row[i].mul(overlapCondition.or(betweenCondition).intVar()).intVar();
+                IntVar overlapCondition = varAnd(varGt(leftArmy, i), varGt(rightArmy, n - i - 1));
+                IntVar betweenCondition = varAnd(varLe(leftArmy, i), varLe(rightArmy, n - i - 1));
+                sumVars[i] = varMul(row[i], varOr(overlapCondition, betweenCondition));
             }
-            model.sum(sumVars, "=", sum).post();
+            constraints.add(model.addEquality(LinearExpr.sum(sumVars), sum));
 
-            IntVar regionSize = leftArmy.add(rightArmy).sub(n).abs().intVar();
-
-            int minCells = 0;
-            int maxSum = 0;
-            int i = n;
-            while (maxSum < sum) {
-                maxSum += i;
-                minCells++;
-                i--;
-            }
-            regionSize.ge(minCells);
-
-            int maxCells = 0;
-            int minSum = 0;
-            i = 1;
-            while (minSum < sum) {
-                minSum += i;
-                i++;
-                maxCells++;
-            }
-            regionSize.le(maxCells);
+//            IntVar regionSize = leftArmy.add(rightArmy).sub(n).abs().intVar();
+//
+//            int minCells = 0;
+//            int maxSum = 0;
+//            int i = n;
+//            while (maxSum < sum) {
+//                maxSum += i;
+//                minCells++;
+//                i--;
+//            }
+//            regionSize.ge(minCells).post();
+//
+//            int maxCells = 0;
+//            int minSum = 0;
+//            i = 1;
+//            while (minSum < sum) {
+//                minSum += i;
+//                i++;
+//                maxCells++;
+//            }
+//            regionSize.le(maxCells).post();
         }
-
+        return constraints;
     }
 
-    private void addBattlefieldConstraints(int[] sums, IntVar[][] grid, int n, Model model) {
+    private void addBattlefieldConstraints(int[] sums, Literal[] conds, IntVar[][] grid, int n, CpModel model) {
         for (int i = 0; i < n; i++) {
             if (sums[i] > 0) {
-                addBattlefieldConstraint(sums[i], grid[i], n, model);
+                for (Constraint constraint : addBattlefieldConstraint(sums[i], grid[i], n, model)) {
+                    if (conds[i] != null) {
+                        constraint.onlyEnforceIf(conds[i]);
+                    }
+                }
             }
         }
     }
@@ -130,12 +214,9 @@ public class BattlefieldSudoku extends VariantPuzzle{
         IntVar[][] cols = getCols();
         int n = getN();
 
-        addBattlefieldConstraints(rowSums, rows, n, model);
-        addBattlefieldConstraints(colSums, cols, n, model);
-    }
-
-    @Override
-    protected void buildDokeFile(StringBuilder sb) {
-
+        addBattlefieldConstraints(leftRowSums, leftRowConds, rows, n, model);
+        addBattlefieldConstraints(topColSums, topColConds, cols, n, model);
+        addBattlefieldConstraints(rightRowSums, rightRowConds, rows, n, model);
+        addBattlefieldConstraints(bottomColSums, bottomColConds, cols, n, model);
     }
 }

@@ -1,54 +1,37 @@
-import org.chocosolver.solver.Model;
-import org.chocosolver.solver.variables.IntVar;
+import com.google.ortools.sat.Constraint;
+import com.google.ortools.sat.CpModel;
+import com.google.ortools.sat.IntVar;
+import com.google.ortools.sat.LinearExpr;
 
 public class LittleKillerSudoku extends VariantPuzzle{
-    int[] leftRowSums;
-    int[] topColSums;
-    int[] rightRowSums;
-    int[] bottomColSums;
+    IntVar[] leftRowSums;
+    IntVar[] topColSums;
+    IntVar[] rightRowSums;
+    IntVar[] bottomColSums;
     String[] leftRowDirs;
     String[] topColDirs;
     String[] rightRowDirs;
     String[] bottomColDirs;
-    int downDiagonalSum;
-    int upDiagonalSum;
-
-    @Override
-    protected void buildDokeFile(StringBuilder sb) {
-        base.buildDokeFile(sb);
-        sb.append("LITTLE KILLER\n");
-        sb.append(downDiagonalSum);
-        sb.append(" ");
-        sb.append(upDiagonalSum);
-        sb.append("\n");
-        buildRow(sb, leftRowSums);
-        buildRow(sb, leftRowDirs);
-        buildRow(sb, topColSums);
-        buildRow(sb, topColDirs);
-        buildRow(sb, rightRowSums);
-        buildRow(sb, rightRowDirs);
-        buildRow(sb, bottomColSums);
-        buildRow(sb, bottomColDirs);
-        sb.append("END LITTLE KILLER\n");
-    }
+    IntVar downDiagonalSum;
+    IntVar upDiagonalSum;
 
     public static class LittleKillerSudokuBuilder {
         AbstractPuzzle base;
-        int[] leftRowSums = null;
-        int[] topColSums = null;
-        int[] rightRowSums = null;
-        int[] bottomColSums = null;
+        IntVar[] leftRowSums = null;
+        IntVar[] topColSums = null;
+        IntVar[] rightRowSums = null;
+        IntVar[] bottomColSums = null;
         String[] leftRowDirs = null;
         String[] topColDirs = null;
         String[] rightRowDirs = null;
         String[] bottomColDirs = null;
-        int downDiagonalSum = 0;
-        int upDiagonalSum = 0;
+        IntVar downDiagonalSum = null;
+        IntVar upDiagonalSum = null;
 
-        public int[] emptySums(int n) {
-            int[] sums = new int[n];
+        public IntVar[] emptySums(int n) {
+            IntVar[] sums = new IntVar[n];
             for (int i = 0; i < n; i++) {
-                sums[i] = 0;
+                sums[i] = null;
             }
             return sums;
         }
@@ -61,39 +44,86 @@ public class LittleKillerSudoku extends VariantPuzzle{
             return dirs;
         }
 
+        public IntVar[] intsToVars(int[] ints) {
+            int n = ints.length;
+            IntVar[] vars = new IntVar[n];
+            for (int i = 0; i < n; i++) {
+                if (ints[i] > 0) {
+                    vars[i] = base.makeConstVar(ints[i], "vars" + i);
+                } else {
+                    vars[i] = null;
+                }
+            }
+            return vars;
+        }
+
         public LittleKillerSudokuBuilder(AbstractPuzzle base) {
             this.base = base;
         }
 
         public LittleKillerSudokuBuilder withUpDiagonal(int upDiagonalSum) {
+            this.upDiagonalSum = upDiagonalSum > 0 ? base.makeConstVar(upDiagonalSum, "upDiagonalSum") : null;
+            return this;
+        }
+
+        public LittleKillerSudokuBuilder withUpDiagonal(IntVar upDiagonalSum) {
             this.upDiagonalSum = upDiagonalSum;
             return this;
         }
 
         public LittleKillerSudokuBuilder withDownDiagonal(int downDiagonalSum) {
+            this.downDiagonalSum = downDiagonalSum > 0 ? base.makeConstVar(downDiagonalSum, "downDiagonalSum") : null;
+            return this;
+        }
+
+        public LittleKillerSudokuBuilder withDownDiagonal(IntVar downDiagonalSum) {
             this.downDiagonalSum = downDiagonalSum;
             return this;
         }
 
         public LittleKillerSudokuBuilder withLeftRowSums(int[] leftRowSums, String[] leftRowDirs) {
+            this.leftRowSums = intsToVars(leftRowSums);
+            this.leftRowDirs = leftRowDirs;
+            return this;
+        }
+
+        public LittleKillerSudokuBuilder withLeftRowSums(IntVar[] leftRowSums, String[] leftRowDirs) {
             this.leftRowSums = leftRowSums;
             this.leftRowDirs = leftRowDirs;
             return this;
         }
 
         public LittleKillerSudokuBuilder withTopColSums(int[] topColSums, String[] topColDirs) {
+            this.topColSums = intsToVars(topColSums);
+            this.topColDirs = topColDirs;
+            return this;
+        }
+
+        public LittleKillerSudokuBuilder withTopColSums(IntVar[] topColSums, String[] topColDirs) {
             this.topColSums = topColSums;
             this.topColDirs = topColDirs;
             return this;
         }
 
         public LittleKillerSudokuBuilder withRightRowSums(int[] rightRowSums, String[] rightRowDirs) {
+            this.rightRowSums = intsToVars(rightRowSums);
+            this.rightRowDirs = rightRowDirs;
+            return this;
+        }
+
+        public LittleKillerSudokuBuilder withRightRowSums(IntVar[] rightRowSums, String[] rightRowDirs) {
             this.rightRowSums = rightRowSums;
             this.rightRowDirs = rightRowDirs;
             return this;
         }
 
         public LittleKillerSudokuBuilder withBottomColSums(int[] bottomColSums, String[] bottomColDirs) {
+            this.bottomColSums = intsToVars(bottomColSums);
+            this.bottomColDirs = bottomColDirs;
+            return this;
+        }
+
+        public LittleKillerSudokuBuilder withBottomColSums(IntVar[] bottomColSums, String[] bottomColDirs) {
             this.bottomColSums = bottomColSums;
             this.bottomColDirs = bottomColDirs;
             return this;
@@ -120,10 +150,10 @@ public class LittleKillerSudoku extends VariantPuzzle{
         }
     }
 
-    private LittleKillerSudoku(AbstractPuzzle base, int downDiagonalSum, int upDiagonalSum,
-                              int[] leftRowSums, int[] topColSums, int[] rightRowSums, int[] bottomColSums,
-                              String[] leftRowDirs, String[] topColDirs, String[] rightRowDirs, String[] bottomColDirs) {
-        this.base = base;
+    private LittleKillerSudoku(AbstractPuzzle base, IntVar downDiagonalSum, IntVar upDiagonalSum,
+                               IntVar[] leftRowSums, IntVar[] topColSums, IntVar[] rightRowSums, IntVar[] bottomColSums,
+                               String[] leftRowDirs, String[] topColDirs, String[] rightRowDirs, String[] bottomColDirs) {
+        super(base);
         this.downDiagonalSum = downDiagonalSum;
         this.upDiagonalSum = upDiagonalSum;
         this.leftRowSums = leftRowSums;
@@ -136,19 +166,19 @@ public class LittleKillerSudoku extends VariantPuzzle{
         this.bottomColDirs = bottomColDirs;
     }
 
-    private void addUpwardsLittleKillerConstraint(int n, int sum, IntVar[][] grid, Model model) {
-        IntVar diagonal = model.intVar(0);
+    private Constraint addUpwardsLittleKillerConstraint(int n, IntVar sum, IntVar[][] grid, CpModel model) {
+        IntVar[] diagonal = new IntVar[n + 1];
         for (int i = 0; i <= n; i++) {
-            diagonal = diagonal.add(grid[n - i][i]).intVar();
+            diagonal[i] = grid[n - i][i];
         }
-        diagonal.eq(sum).post();
+        return model.addEquality(LinearExpr.sum(diagonal), sum);
     }
 
-    private void addKillerConstraints(String[] dirs, int[] sums, String upDir, String downDir, IntVar[][] grid, Model model) {
+    private void addKillerConstraints(String[] dirs, IntVar[] sums, String upDir, String downDir, IntVar[][] grid, CpModel model) {
         int n = dirs.length;
         IntVar[][] revGrid = makeColReversedGrid(grid);
         for (int i = 0; i < n; i++) {
-            if (sums [i] > 0) {
+            if (sums[i] != null) {
                 if (dirs[i].equals(upDir)) {
                     addUpwardsLittleKillerConstraint(i - 1, sums[i], grid, model);
                 } else if (dirs[i].equals(downDir)) {
@@ -166,13 +196,13 @@ public class LittleKillerSudoku extends VariantPuzzle{
         int n = getN();
 
         IntVar[][] rows = getRows();
-        if (upDiagonalSum > 0) {
+        if (upDiagonalSum != null) {
             addUpwardsLittleKillerConstraint(n - 1, upDiagonalSum, rows, model);
         }
         addKillerConstraints(leftRowDirs, leftRowSums, "U", "D", rows, model);
 
         IntVar[][] revRows = makeRowReversedGrid(rows);
-        if (downDiagonalSum > 0) {
+        if (downDiagonalSum != null) {
             addUpwardsLittleKillerConstraint(n - 1, downDiagonalSum, revRows, model);
         }
         addKillerConstraints(rightRowDirs, rightRowSums, "U", "D", revRows, model);

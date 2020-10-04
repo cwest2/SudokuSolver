@@ -1,3 +1,5 @@
+import com.google.ortools.sat.IntVar;
+import com.google.ortools.sat.Literal;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -16,11 +18,11 @@ public class SandwichTest extends SudokuTest{
                 .withGivens(givens)
                 .build();
         AbstractPuzzle sandwich = new SandwichSudoku.SandwichSudokuBuilder(regular)
-                .withRowSums(rowSums)
-                .withColSums(colSums)
+                .withLeftRowSums(rowSums)
+                .withTopColSums(colSums)
                 .build();
 
-        int[][] solution = {
+        long[][] solution = {
                 {8, 5, 9, 2, 7, 4, 3, 1, 6},
                 {3, 1, 7, 9, 5, 6, 2, 4, 8},
                 {4, 6, 2, 8, 1, 3, 9, 5, 7},
@@ -57,11 +59,11 @@ public class SandwichTest extends SudokuTest{
                 .withGivens(givens)
                 .build();
         puzzle = new SandwichSudoku.SandwichSudokuBuilder(puzzle)
-                .withRowSums(rowSums)
-                .withColSums(colSums)
+                .withLeftRowSums(rowSums)
+                .withTopColSums(colSums)
                 .build();
 
-        int[][] solution = {
+        long[][] solution = {
                 {4, 8, 5, 6, 7, 9, 3, 2, 1},
                 {3, 2, 9, 5, 8, 1, 6, 4, 7},
                 {7, 1, 6, 2, 3, 4, 5, 9, 8},
@@ -97,11 +99,11 @@ public class SandwichTest extends SudokuTest{
                 .withGivens(givens)
                 .build();
         puzzle = new SandwichSudoku.SandwichSudokuBuilder(puzzle)
-                .withRowSums(rowSums)
-                .withColSums(colSums)
+                .withLeftRowSums(rowSums)
+                .withTopColSums(colSums)
                 .build();
 
-        int[][] solution = {
+        long[][] solution = {
                 {8, 9, 7, 1, 4, 5, 3, 2, 6},
                 {6, 4, 5, 2, 9, 3, 7, 1, 8},
                 {2, 3, 1, 6, 8, 7, 9, 5, 4},
@@ -137,13 +139,13 @@ public class SandwichTest extends SudokuTest{
                 .withGivens(givens)
                 .build();
         puzzle = new SandwichSudoku.SandwichSudokuBuilder(puzzle)
-                .withRowSums(rowSums)
-                .withColSums(colSums)
+                .withLeftRowSums(rowSums)
+                .withTopColSums(colSums)
                 .withTopBun(6)
                 .withBottomBun(4)
                 .build();
 
-        int[][] solution = {
+        long[][] solution = {
                 {4, 1, 3, 5, 8, 2, 9, 7, 6},
                 {2, 5, 8, 6, 9, 7, 4, 3, 1},
                 {9, 6, 7, 3, 4, 1, 5, 8, 2},
@@ -188,17 +190,19 @@ public class SandwichTest extends SudokuTest{
         AbstractPuzzle puzzle = new RegularSudoku.RegularSudokuBuilder()
                 .build();
         puzzle = new SandwichSudoku.SandwichSudokuBuilder(puzzle)
-                .withRowSums(rowSums)
-                .withColSums(colSums)
+                .withLeftRowSums(rowSums)
+                .withTopColSums(colSums)
                 .withTopBunRange(1, 9)
                 .withBottomBunRange(1, 9)
                 .build();
-        puzzle = new KillerSudoku.KillerSudokuBuilder(puzzle, cages, cageSums)
+        puzzle = new KillerSudoku.KillerSudokuBuilder(puzzle)
+                .withCagesGrid(cages)
+                .withCageSumInts(cageSums)
                 .build();
         puzzle = new KnightSudoku.KnightSudokuBuilder(puzzle)
                 .build();
 
-        int[][] solution = {
+        long[][] solution = {
                 {5, 8, 4, 3, 6, 2, 1, 7, 9},
                 {9, 7, 2, 4, 5, 1, 8, 3, 6},
                 {3, 6, 1, 9, 7, 8, 4, 2, 5},
@@ -227,7 +231,7 @@ public class SandwichTest extends SudokuTest{
                 {0, 0, 0, 0, 0, 0, 0, 0, 0}
         };
 
-        int[][] rowSumSets = {
+        long[][] rowSumSets = {
                 {},
                 {},
                 {20, 22},
@@ -239,7 +243,7 @@ public class SandwichTest extends SudokuTest{
                 {10, 12}
         };
 
-        int[][] colSumSets = {
+        long[][] colSumSets = {
                 {16, 18},
                 {},
                 {19, 21},
@@ -259,7 +263,7 @@ public class SandwichTest extends SudokuTest{
                 .withColSumSets(colSumSets)
                 .build();
 
-        int[][] solution = {
+        long[][] solution = {
                 {1, 2, 9, 8, 3, 6, 5, 4, 7},
                 {4, 6, 8, 7, 1, 5, 3, 2, 9},
                 {5, 7, 3, 9, 4, 2, 8, 6, 1},
@@ -269,6 +273,64 @@ public class SandwichTest extends SudokuTest{
                 {3, 9, 7, 2, 6, 8, 4, 1, 5},
                 {2, 8, 5, 1, 7, 4, 9, 3, 6},
                 {6, 1, 4, 3, 5, 9, 2, 7, 8}
+        };
+
+        compareSolutions(puzzle.solve(), solution);
+    }
+
+    @Test
+    public void testDoubleSandwiches() {
+        AbstractPuzzle puzzle = new RegularSudoku.RegularSudokuBuilder()
+                .build();
+
+        int[] leftRowSums = {-1, 9, -1, 5, 7, -1, 8, -1, -1};
+        int[] rightRowSums = {-1, 9, -1, 5, 14, -1, 8, -1, -1};
+
+        int[] topColSums = {-1, -1, 6, -1, 1, -1, 11, 5, -1};
+        int[] bottomColSums = {-1, -1, 6, -1, 27, -1, 22, 5, -1};
+
+        IntVar N = null;
+
+        IntVar[] rowConds = {N, puzzle.makeBoolVar("r"), N, puzzle.makeBoolVar("r"), puzzle.makeBoolVar("r"), N, puzzle.makeBoolVar("r"), N, N};
+        Literal[] nRowConds = negateConds(rowConds);
+
+        IntVar[] colConds = {N, N, puzzle.makeBoolVar("c"), N, puzzle.makeBoolVar("c"), N, puzzle.makeBoolVar("c"), puzzle.makeBoolVar("c"), N};
+        Literal[] nColConds = negateConds(colConds);
+
+        puzzle = new SandwichSudoku.SandwichSudokuBuilder(puzzle)
+                .withLeftRowSums(leftRowSums)
+                .withRightRowSums(rightRowSums)
+                .withTopColSums(topColSums)
+                .withBottomColSums(bottomColSums)
+                .withLeftRowConds(rowConds)
+                .withRightRowConds(nRowConds)
+                .withTopColConds(colConds)
+                .withBottomColConds(nColConds)
+                .build();
+
+        puzzle = new SandwichSudoku.SandwichSudokuBuilder(puzzle)
+                .withTopBun(7)
+                .withBottomBun(5)
+                .withLeftRowSums(leftRowSums)
+                .withRightRowSums(rightRowSums)
+                .withTopColSums(topColSums)
+                .withBottomColSums(bottomColSums)
+                .withLeftRowConds(nRowConds)
+                .withRightRowConds(rowConds)
+                .withTopColConds(nColConds)
+                .withBottomColConds(colConds)
+                .build();
+
+        long[][] solution = {
+                {5, 6, 7, 4, 3, 2, 1, 8, 9},
+                {8, 1, 2, 7, 9, 5, 4, 3, 6},
+                {9, 3, 4, 6, 8, 1, 5, 2, 7},
+                {3, 9, 5, 1, 4, 7, 2, 6, 8},
+                {6, 4, 8, 5, 2, 3, 9, 7, 1},
+                {7, 2, 1, 9, 6, 8, 3, 4, 5},
+                {4, 5, 6, 2, 7, 9, 8, 1, 3},
+                {2, 8, 9, 3, 1, 6, 7, 5, 4},
+                {1, 7, 3, 8, 5, 4, 6, 9, 2}
         };
 
         compareSolutions(puzzle.solve(), solution);

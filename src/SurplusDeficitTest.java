@@ -27,7 +27,7 @@ public class SurplusDeficitTest extends SudokuTest {
                 {9, 9, 9, 7, 8, 8, 10, 10, 10}
         };
 
-        int[][] solution = {
+        long[][] solution = {
                 {8, 7, 3, 4, 1, 2, 6, 9, 5},
                 {9, 4, 5, 6, 3, 8, 2, 1, 7},
                 {1, 2, 7, 8, 9, 6, 5, 3, 4},

@@ -98,6 +98,18 @@ public class RenbanTest extends SudokuTest {
         puzzle = new RenbanSudoku.RenbanSudokuBuilder(puzzle, regions)
                 .build();
 
-        puzzle.printSolution();
+        long[][] solution = {
+                {4, 5, 8, 6, 2, 3, 9, 7, 1},
+                {1, 9, 2, 4, 5, 7, 6, 8, 3},
+                {7, 3, 6, 8, 1, 9, 5, 2, 4},
+                {5, 1, 4, 2, 3, 6, 8, 9, 7},
+                {8, 6, 7, 9, 4, 1, 2, 3, 5},
+                {3, 2, 9, 7, 8, 5, 1, 4, 6},
+                {9, 4, 3, 5, 6, 8, 7, 1, 2},
+                {2, 8, 5, 1, 7, 4, 3, 6, 9},
+                {6, 7, 1, 3, 9, 2, 4, 5, 8}
+        };
+
+        compareSolutions(puzzle.solve(), solution);
     }
 }

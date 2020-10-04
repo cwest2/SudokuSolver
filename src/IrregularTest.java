@@ -27,7 +27,7 @@ public class IrregularTest extends SudokuTest {
                 {7, 7, 7, 7, 6, 6, 9, 9, 9}
         };
 
-        int[][] solution = {
+        long[][] solution = {
                 {3, 6, 2, 7, 4, 9, 8, 5, 1},
                 {5, 9, 8, 1, 7, 2, 4, 3, 6},
                 {1, 2, 3, 4, 6, 5, 9, 8, 7},
@@ -43,7 +43,7 @@ public class IrregularTest extends SudokuTest {
                 .withGivens(givens)
                 .build();
 
-        int[][] solverSolution = irregular.solve();
+        long[][] solverSolution = irregular.solve();
 
         compareSolutions(solverSolution, solution);
     }
@@ -67,7 +67,7 @@ public class IrregularTest extends SudokuTest {
                 {5, 5, 5, 4, 4, 4}
         };
 
-        int[][] solution = {
+        long[][] solution = {
                 {3, 2, 1, 5, 6, 4},
                 {4, 5, 3, 6, 2, 1},
                 {5, 1, 2, 4, 3, 6},

@@ -69,7 +69,7 @@ public class PalindromeTest extends SudokuTest {
         puzzle = new PalindromeSudoku.PalindromeSudokuBuilder(puzzle, palindromes)
                 .build();
 
-        int[][] solution = {
+        long[][] solution = {
                 {9, 1, 3, 4, 2, 7, 8, 5, 6},
                 {2, 5, 6, 9, 8, 1, 3, 7, 4},
                 {4, 7, 8, 3, 6, 5, 9, 1, 2},

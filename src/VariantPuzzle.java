@@ -1,20 +1,22 @@
-import org.chocosolver.solver.variables.IntVar;
+import com.google.ortools.sat.IntVar;
 
 public abstract class VariantPuzzle extends AbstractPuzzle {
     AbstractPuzzle base;
 
-    @Override
     public int getN() {
         return base.getN();
     }
 
-    @Override
     public IntVar[][] getRows() {
         return base.getRows();
     }
 
-    @Override
     public IntVar[][] getCols() {
         return base.getCols();
+    }
+
+    public VariantPuzzle(AbstractPuzzle base) {
+        this.base = base;
+        base.buildModel();
     }
 }

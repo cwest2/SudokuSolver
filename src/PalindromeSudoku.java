@@ -1,6 +1,4 @@
-import org.chocosolver.solver.Model;
-import org.chocosolver.solver.constraints.Constraint;
-import org.chocosolver.solver.variables.IntVar;
+import com.google.ortools.sat.IntVar;
 
 import java.util.List;
 
@@ -22,7 +20,7 @@ public class PalindromeSudoku extends VariantPuzzle {
     }
 
     private PalindromeSudoku(AbstractPuzzle base, List<int[][]> palindromes) {
-        this.base = base;
+        super(base);
         this.palindromes = palindromes;
     }
 
@@ -36,25 +34,8 @@ public class PalindromeSudoku extends VariantPuzzle {
             for (int k = 0; k < len / 2; k++) {
                 int[] first = palindrome[k];
                 int[] second = palindrome[len - k - 1];
-                rows[first[0]][first[1]].eq(rows[second[0]][second[1]]).post();
+                model.addEquality(rows[first[0]][first[1]], rows[second[0]][second[1]]);
             }
         }
-    }
-
-    @Override
-    protected void buildDokeFile(StringBuilder sb) {
-        base.buildDokeFile(sb);
-        sb.append("PALINDROME\n");
-        for (int[][] palindrome : palindromes) {
-            for (int[] coord : palindrome) {
-                sb.append(coord[0]);
-                sb.append(" ");
-                sb.append(coord[1]);
-                sb.append("\n");
-            }
-            sb.append("\n");
-        }
-        sb.append("\n");
-        sb.append("END PALINDROME\n");
     }
 }

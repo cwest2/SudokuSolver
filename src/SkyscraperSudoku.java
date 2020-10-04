@@ -1,6 +1,8 @@
-import org.chocosolver.solver.Model;
-import org.chocosolver.solver.constraints.Constraint;
-import org.chocosolver.solver.variables.IntVar;
+import com.google.ortools.sat.Constraint;
+import com.google.ortools.sat.CpModel;
+import com.google.ortools.sat.IntVar;
+import com.google.ortools.sat.LinearExpr;
+import com.google.ortools.util.Domain;
 
 public class SkyscraperSudoku extends VariantPuzzle {
 
@@ -9,14 +11,14 @@ public class SkyscraperSudoku extends VariantPuzzle {
     int[] rightRowSums;
     int[] bottomColSums;
 
-    private Constraint getSkyscraperConstraint(Model model, IntVar[] row, int seen) {
-        IntVar tallest = model.intVar(0);
+    private Constraint getSkyscraperConstraint(CpModel model, IntVar[] row, int seen) {
+        IntVar tallest = model.newIntVarFromDomain(new Domain(0), "tallest");
         IntVar[] rowSeenVars = new IntVar[row.length];
         for (int i = 0; i < row.length; i++) {
-            rowSeenVars[i] = tallest.lt(row[i]).intVar();
-            tallest = tallest.max(row[i]).intVar();
+            rowSeenVars[i] = varLt(tallest, row[i]);
+            tallest = varMax(tallest, row[i]);
         }
-        return model.sum(rowSeenVars, "=", seen);
+        return model.addEquality(LinearExpr.sum(rowSeenVars), seen);
     }
 
     public static class SkyscraperSudokuBuilder {
@@ -76,7 +78,7 @@ public class SkyscraperSudoku extends VariantPuzzle {
     }
 
     public SkyscraperSudoku(AbstractPuzzle base, int[] leftRowSums, int[] topColSums, int[] rightRowSums, int[] bottomColSums) {
-        this.base = base;
+        super(base);
         this.leftRowSums = leftRowSums;
         this.topColSums = topColSums;
         this.rightRowSums = rightRowSums;
@@ -92,28 +94,17 @@ public class SkyscraperSudoku extends VariantPuzzle {
 
         for (int i = 0; i < n; i++) {
             if (leftRowSums[i] > 0) {
-                getSkyscraperConstraint(model, rows[i], leftRowSums[i]).post();
+                getSkyscraperConstraint(model, rows[i], leftRowSums[i]);
             }
             if (topColSums[i] > 0) {
-                getSkyscraperConstraint(model, cols[i], topColSums[i]).post();
+                getSkyscraperConstraint(model, cols[i], topColSums[i]);
             }
             if (rightRowSums[i] > 0) {
-                getSkyscraperConstraint(model, makeReversedArray(rows[i]), rightRowSums[i]).post();
+                getSkyscraperConstraint(model, makeReversedArray(rows[i]), rightRowSums[i]);
             }
             if (bottomColSums[i] > 0) {
-                getSkyscraperConstraint(model, makeReversedArray(cols[i]), bottomColSums[i]).post();
+                getSkyscraperConstraint(model, makeReversedArray(cols[i]), bottomColSums[i]);
             }
         }
-    }
-
-    @Override
-    protected void buildDokeFile(StringBuilder sb) {
-        base.buildDokeFile(sb);
-        sb.append("SKYSCRAPER\n");
-        buildRow(sb, leftRowSums);
-        buildRow(sb, topColSums);
-        buildRow(sb, rightRowSums);
-        buildRow(sb, bottomColSums);
-        sb.append("END SKYSCRAPER\n");
     }
 }

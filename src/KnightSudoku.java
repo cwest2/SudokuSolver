@@ -1,4 +1,4 @@
-import org.chocosolver.solver.variables.IntVar;
+import com.google.ortools.sat.IntVar;
 
 public class KnightSudoku extends VariantPuzzle {
 
@@ -15,7 +15,7 @@ public class KnightSudoku extends VariantPuzzle {
     }
 
     private KnightSudoku(AbstractPuzzle base) {
-        this.base = base;
+        super(base);
     }
 
     private IntVar getIfExists(IntVar[][] rows, int i, int j) {
@@ -34,42 +34,24 @@ public class KnightSudoku extends VariantPuzzle {
         IntVar[][] rows = getRows();
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
+                IntVar cell = rows[i][j];
                 IntVar downLeft = getIfExists(rows, i + 2, j - 1);
                 if (downLeft != null) {
-                    IntVar[] downLeftPair = new IntVar[2];
-                    downLeftPair[0] = rows[i][j];
-                    downLeftPair[1] = downLeft;
-                    model.allDifferent(downLeftPair, "AC").post();
+                    model.addDifferent(cell, downLeft);
                 }
                 IntVar downRight = getIfExists(rows, i + 2, j + 1);
                 if (downRight != null) {
-                    IntVar[] downRightPair = new IntVar[2];
-                    downRightPair[0] = rows[i][j];
-                    downRightPair[1] = downRight;
-                    model.allDifferent(downRightPair, "AC").post();
+                    model.addDifferent(cell, downRight);
                 }
                 IntVar leftDown = getIfExists(rows, i + 1, j - 2);
                 if (leftDown != null) {
-                    IntVar[] leftDownPair = new IntVar[2];
-                    leftDownPair[0] = rows[i][j];
-                    leftDownPair[1] = leftDown;
-                    model.allDifferent(leftDownPair, "AC").post();
+                    model.addDifferent(cell, leftDown);
                 }
                 IntVar rightDown = getIfExists(rows, i + 1, j + 2);
                 if (rightDown != null) {
-                    IntVar[] rightDownPair = new IntVar[2];
-                    rightDownPair[0] = rows[i][j];
-                    rightDownPair[1] = rightDown;
-                    model.allDifferent(rightDownPair, "AC").post();
+                    model.addDifferent(cell, rightDown);
                 }
             }
         }
-    }
-
-    @Override
-    protected void buildDokeFile(StringBuilder sb) {
-        base.buildDokeFile(sb);
-        sb.append("KNIGHT\n");
-        sb.append("END KNIGHT\n");
     }
 }

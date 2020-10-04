@@ -37,7 +37,7 @@ public class RossiniTest extends SudokuTest {
                 .withNegative(true)
                 .build();
 
-        int[][] solution = {
+        long[][] solution = {
                 {9, 6, 3, 7, 5, 1, 2, 4, 8},
                 {1, 4, 5, 8, 9, 2, 7, 6, 3},
                 {8, 7, 2, 3, 4, 6, 9, 1, 5},

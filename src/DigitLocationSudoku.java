@@ -1,6 +1,6 @@
-import org.chocosolver.solver.Model;
-import org.chocosolver.solver.constraints.nary.nvalue.amnv.differences.D;
-import org.chocosolver.solver.variables.IntVar;
+import com.google.ortools.sat.CpModel;
+import com.google.ortools.sat.IntVar;
+import com.google.ortools.util.Domain;
 
 public class DigitLocationSudoku extends VariantPuzzle {
     int digit;
@@ -65,7 +65,7 @@ public class DigitLocationSudoku extends VariantPuzzle {
     }
 
     private DigitLocationSudoku(AbstractPuzzle base, int digit, boolean[] leftRowActive, boolean[] topColActive, boolean[] rightRowActive, boolean[] bottomColActive) {
-        this.base = base;
+        super(base);
         this.digit = digit;
         this.leftRowActive = leftRowActive;
         this.topColActive = topColActive;
@@ -73,15 +73,13 @@ public class DigitLocationSudoku extends VariantPuzzle {
         this.bottomColActive = bottomColActive;
     }
 
-    private void applyDigitLocationConstraint(int digit, Model model, IntVar[] row, int n) {
-        IntVar digitLoc = model.intVar(0, n - 1);
-        digitLoc.eq(row[0].sub(1)).post();
-        for (int i = 0; i < n; i++) {
-            digitLoc.eq(i).iff(row[i].eq(digit)).post();
-        }
+    private void applyDigitLocationConstraint(int digit, CpModel model, IntVar[] row, int n) {
+        IntVar digitLoc = model.newIntVar(0, n - 1, "digitLoc");
+        model.addElement(digitLoc, row, model.newIntVarFromDomain(new Domain(digit), "" + digit));
+        model.addEqualityWithOffset(digitLoc, row[0], 1);
     }
 
-    private void applyDigitLocationConstraints(int digit, boolean[] actives, Model model, IntVar[][] grid, int n) {
+    private void applyDigitLocationConstraints(int digit, boolean[] actives, CpModel model, IntVar[][] grid, int n) {
         for (int i = 0; i < n; i++) {
             if (actives[i]) {
                 applyDigitLocationConstraint(digit, model, grid[i], n);
@@ -100,10 +98,5 @@ public class DigitLocationSudoku extends VariantPuzzle {
         applyDigitLocationConstraints(digit, topColActive, model, cols, n);
         applyDigitLocationConstraints(digit, rightRowActive, model, makeRowReversedGrid(rows), n);
         applyDigitLocationConstraints(digit, bottomColActive, model, makeRowReversedGrid(cols), n);
-    }
-
-    @Override
-    protected void buildDokeFile(StringBuilder sb) {
-
     }
 }

@@ -49,12 +49,4 @@ public class IrregularSudoku extends SurplusDeficitSudoku {
         super(base, regions);
         this.regions = regions;
     }
-
-    @Override
-    protected void buildDokeFile(StringBuilder sb) {
-        base.buildDokeFile(sb);
-        sb.append("IRREGULAR\n");
-        buildGrid(sb, regions);
-        sb.append("END IRREGULAR\n");
-    }
 }

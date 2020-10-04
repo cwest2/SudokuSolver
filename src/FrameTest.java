@@ -18,7 +18,7 @@ public class FrameTest extends SudokuTest {
                 .withBottomColSums(bottomColSums)
                 .build();
 
-        int[][] solution = {
+        long[][] solution = {
                 {1, 4, 3, 2, 8, 5, 9, 6, 7},
                 {8, 5, 2, 6, 9, 7, 4, 3, 1},
                 {6, 9, 7, 3, 4, 1, 2, 8, 5},

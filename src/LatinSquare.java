@@ -1,11 +1,8 @@
-import java.io.IOException;
-
-import org.chocosolver.solver.Model;
-import org.chocosolver.solver.variables.IntVar;
-import static org.chocosolver.util.tools.ArrayUtils.append;
+import com.google.ortools.sat.CpModel;
+import com.google.ortools.sat.IntVar;
+import com.google.ortools.util.Domain;
 
 public class LatinSquare extends AbstractPuzzle {
-
     int[][] givens;
     int n;
     IntVar[][] rows;
@@ -47,16 +44,8 @@ public class LatinSquare extends AbstractPuzzle {
     }
 
     @Override
-    protected void buildDokeFile(StringBuilder sb) {
-        sb.append(n);
-        sb.append("\n");
-        sb.append("GIVENS\n");
-        buildGrid(sb, givens);
-    }
-
-    @Override
     public void buildModel() {
-        model = new Model();
+        model = new CpModel();
 
         rows = new IntVar[n][n];
         cols = new IntVar[n][n];
@@ -64,17 +53,17 @@ public class LatinSquare extends AbstractPuzzle {
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
                 if (givens[i][j] == 0) {
-                    rows[i][j] = model.intVar("c_" + i + "_" + j, 1, n, false);
+                    rows[i][j] = model.newIntVar(1, n, "r_" + i + "c_" + j);
                 } else {
-                    rows[i][j] = model.intVar(givens[i][j]);
+                    rows[i][j] = model.newIntVarFromDomain(new Domain(givens[i][j]), "r_" + i + "c_" + j);
                 }
                 cols[j][i] = rows[i][j];
             }
         }
 
         for (int i = 0; i < n; i++) {
-            model.allDifferent(rows[i], "AC").post();
-            model.allDifferent(cols[i], "AC").post();
+            model.addAllDifferent(rows[i]);
+            model.addAllDifferent(cols[i]);
         }
     }
 
